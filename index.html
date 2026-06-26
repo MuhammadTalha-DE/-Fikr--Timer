@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#7c5ce7">
+    <link rel="manifest" href="manifest.json">   
+    <title>Fikr Timer</title>
+    <style>
+        :root {
+            --bg: #0f0f1a;
+            --surface: #1a1a2e;
+            --surface2: #25253e;
+            --text: #e0e0ff;
+            --text-secondary: #a0a0c0;
+            --primary: #7c5ce7;
+            --primary-glow: rgba(124, 92, 231, 0.4);
+            --danger: #ff6b6b;
+            --success: #51cf66;
+            --border: rgba(255, 255, 255, 0.08);
+            --shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --header-bg: rgba(15, 15, 26, 0.8);
+            --nav-bg: rgba(26, 26, 46, 0.95);
+            --modal-bg: #1e1e36;
+            --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            --radius: 20px;
+            --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        [data-theme="light"] {
+            --bg: #f5f5fa;
+            --surface: #ffffff;
+            --surface2: #eaeaef;
+            --text: #1a1a2e;
+            --text-secondary: #5a5a7a;
+            --primary: #5a3ec8;
+            --primary-glow: rgba(90, 62, 200, 0.3);
+            --danger: #e74c3c;
+            --success: #2ecc71;
+            --border: rgba(0, 0, 0, 0.08);
+            --shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+            --card-bg: rgba(0, 0, 0, 0.03);
+            --header-bg: rgba(245, 245, 250, 0.9);
+            --nav-bg: rgba(255, 255, 255, 0.95);
+            --modal-bg: #ffffff;
+        }
+
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:var(--font); background:var(--bg); color:var(--text); min-height:100vh; display:flex; flex-direction:column; transition:background var(--transition),color var(--transition); -webkit-tap-highlight-color:transparent; user-select:none; }
+        .app-header { background:var(--header-bg); backdrop-filter:blur(12px); padding:12px 16px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border); position:sticky; top:0; z-index:100; flex-wrap:wrap; gap:8px; }
+        .header-left { display:flex; align-items:center; gap:8px; }
+        .logo-icon { font-size:1.8rem; }
+        .app-title { font-size:1.3rem; font-weight:700; background:linear-gradient(135deg, var(--primary), #c084fc); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+        .header-center { display:flex; align-items:center; gap:12px; }
+        .digital-clock-small { font-size:1.1rem; font-weight:600; }
+        .analog-clock { width:44px; height:44px; }
+        .clock-face { fill:var(--surface2); stroke:var(--border); stroke-width:1; }
+        .hand { stroke:var(--text); stroke-linecap:round; transform-origin:22px 22px; }
+        .hour-hand { stroke-width:2.5; stroke:var(--primary); }
+        .minute-hand { stroke-width:2; stroke:var(--text); }
+        .second-hand { stroke-width:1; stroke:var(--danger); }
+        .center-dot { fill:var(--danger); }
+        .header-right { display:flex; align-items:center; gap:10px; }
+        .icon-btn { background:none; border:none; font-size:1.4rem; cursor:pointer; color:var(--text); transition:transform 0.2s; }
+        .icon-btn:hover { transform:scale(1.1); }
+        .hidden { display:none !important; }
+        .app-main { flex:1; overflow-y:auto; padding:20px 16px 100px; transition:all 0.3s; }
+        body.desktop-layout .app-main { display:grid; grid-template-columns:1fr 1fr; gap:20px; max-width:1200px; margin:0 auto; padding:20px 30px 100px; }
+        .view { display:none; }
+        .view.active { display:block; }
+        .section-header h2 { font-size:1.8rem; font-weight:700; margin-bottom:4px; }
+        .mode-cards-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(140px,1fr)); gap:14px; margin-bottom:24px; }
+        .mode-card { background:var(--card-bg); border:1px solid var(--border); border-radius:var(--radius); padding:16px 10px; text-align:center; cursor:pointer; transition:all var(--transition); }
+        .mode-card:hover { background:var(--surface2); border-color:var(--primary); transform:translateY(-3px); box-shadow:0 12px 24px rgba(0,0,0,0.3); }
+        .mode-icon { font-size:2rem; }
+        .mode-name { font-weight:600; }
+        .quick-start { background:var(--surface); border-radius:var(--radius); padding:18px; border:1px solid var(--border); }
+        .quick-select { flex:1; background:var(--surface2); border:1px solid var(--border); color:var(--text); padding:10px 14px; border-radius:12px; }
+        .btn { padding:10px 20px; border-radius:40px; font-weight:600; cursor:pointer; border:none; transition:all var(--transition); font-size:0.9rem; }
+        .btn-primary { background:var(--primary); color:white; box-shadow:0 4px 14px var(--primary-glow); }
+        .btn-outline { background:transparent; border:1px solid var(--border); color:var(--text); }
+        .btn-outline:hover { background:var(--surface2); }
+        .btn-sm { padding:6px 14px; font-size:0.8rem; }
+        .circular-timer-container { position:relative; width:260px; height:260px; margin:20px auto; transition:transform 0.6s ease; }
+        .circular-timer-container.breathing-inhale { transform:scale(1.15); }
+        .circular-timer-container.breathing-exhale { transform:scale(0.95); }
+        .circular-timer-svg { width:100%; height:100%; transform:rotate(-90deg); }
+        .timer-bg-circle { fill:none; stroke:var(--border); stroke-width:8; }
+        .timer-progress-circle { fill:none; stroke:var(--primary); stroke-width:8; transition:stroke-dashoffset 0.5s linear; }
+        .breathing-ring { fill:none; stroke:var(--primary); stroke-width:2; opacity:0; transition:r 0.6s ease, opacity 0.3s; }
+        .timer-display { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center; }
+        .timer-time { font-size:3.2rem; font-weight:700; }
+        .breathing-phase-text { text-align:center; font-size:2rem; font-weight:300; margin:10px 0; text-transform:uppercase; letter-spacing:3px; color:var(--primary); }
+        .timer-controls { display:flex; justify-content:center; gap:25px; margin:20px 0; }
+        .ctrl-btn { background:var(--surface); border-radius:50%; width:55px; height:55px; font-size:1.6rem; color:var(--text); cursor:pointer; box-shadow:var(--shadow); display:flex; align-items:center; justify-content:center; }
+        .ctrl-btn:hover { background:var(--primary); color:white; }
+        .ctrl-main { width:70px; height:70px; font-size:2rem; background:var(--primary); color:white; }
+        .bottom-nav { position:fixed; bottom:0; left:0; right:0; background:var(--nav-bg); backdrop-filter:blur(12px); border-top:1px solid var(--border); display:flex; justify-content:space-around; padding:8px 0 12px; z-index:100; }
+        .nav-btn { background:none; border:none; color:var(--text-secondary); display:flex; flex-direction:column; align-items:center; gap:4px; font-size:0.75rem; padding:6px 12px; border-radius:30px; cursor:pointer; }
+        .nav-btn.active { color:var(--primary); background:rgba(124,92,231,0.15); }
+        .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; z-index:200; }
+        .modal-content { background:var(--modal-bg); border-radius:var(--radius); padding:24px; max-width:90vw; width:380px; }
+        .form-input { width:100%; padding:10px; border-radius:12px; border:1px solid var(--border); background:var(--surface2); color:var(--text); }
+        .color-swatch { width:36px; height:36px; border-radius:50%; cursor:pointer; border:3px solid transparent; }
+        .color-swatch.active { border-color:var(--text); transform:scale(1.15); }
+        .breathing-control-panel { background:var(--surface); border-radius:var(--radius); padding:16px; margin-top:20px; border:1px solid var(--border); }
+        .control-row { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+        .control-label { width:60px; font-weight:600; }
+        .nudge-btn { background:var(--surface2); border:1px solid var(--border); border-radius:20px; width:36px; height:36px; font-size:1.2rem; color:var(--text); cursor:pointer; }
+        .nudge-value { min-width:30px; text-align:center; font-weight:600; }
+        .preset-row { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+        @media (max-width:700px) { body.desktop-layout .app-main { grid-template-columns:1fr; } }
+    </style>
+</head>
+<body>
+    <header class="app-header">
+        <div class="header-left"><span class="logo-icon">⏳</span><h1 class="app-title">Fikr Timer</h1></div>
+        <div class="header-center">
+            <div class="digital-clock-small" id="digitalClockSmall">00:00:00</div>
+            <div class="analog-clock-container">
+                <svg class="analog-clock" viewBox="0 0 44 44">
+                    <circle class="clock-face" cx="22" cy="22" r="20"/>
+                    <line class="hand hour-hand" id="hourHand" x1="22" y1="22" x2="22" y2="10"/>
+                    <line class="hand minute-hand" id="minuteHand" x1="22" y1="22" x2="22" y2="6"/>
+                    <line class="hand second-hand" id="secondHand" x1="22" y1="22" x2="22" y2="5"/>
+                    <circle class="center-dot" cx="22" cy="22" r="1.5"/>
+                </svg>
+            </div>
+        </div>
+        <div class="header-right">
+            <button class="icon-btn" id="digitalClockBtn">🕒</button>
+            <button class="icon-btn" id="layoutToggleBtn">📱💻</button>
+            <button class="icon-btn" id="soundToggle"><span id="soundIcon">🔔</span></button>
+            <button class="icon-btn" id="themeToggle"><span id="themeIcon">🌙</span></button>
+        </div>
+    </header>
+
+    <div class="digital-clock-overlay hidden" id="digitalClockOverlay" style="position:fixed; inset:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(8px); display:flex; align-items:center; justify-content:center; z-index:250; flex-direction:column; color:white;">
+        <button id="closeOverlayBtn" style="position:absolute; top:20px; right:30px; background:none; border:none; color:white; font-size:2rem; cursor:pointer;">✕</button>
+        <div class="big-digital-time" id="bigDigitalTime" style="font-size:8rem; font-weight:200; text-shadow:0 0 30px var(--primary);">00:00:00</div>
+        <div id="bigDigitalDate"></div>
+    </div>
+
+    <main class="app-main">
+        <section class="view active" id="homeView">
+            <div class="section-header"><h2>Choose Your Mode</h2></div>
+            <div class="mode-cards-grid" id="modeCardsGrid"></div>
+            <div class="quick-start"><div class="quick-start-row"><select id="quickModeSelect" class="quick-select"></select><button class="btn btn-primary" id="quickStartBtn">Start</button></div></div>
+        </section>
+
+        <section class="view" id="timerView">
+            <div style="display:flex; gap:20px; flex-wrap:wrap; justify-content:center;">
+                <div style="flex:1; min-width:280px;">
+                    <div class="timer-mode-indicator" id="timerModeIndicator">🍅 Pomodoro</div>
+                    <div class="timer-round-info" id="timerRoundInfo"></div>
+                    <div class="breathing-phase-text hidden" id="breathingPhaseText">INHALE</div>
+                    <div class="circular-timer-container" id="circularTimerContainer">
+                        <svg class="circular-timer-svg" viewBox="0 0 280 280">
+                            <circle class="timer-bg-circle" cx="140" cy="140" r="125"/>
+                            <circle class="timer-progress-circle" id="timerProgressCircle" cx="140" cy="140" r="125" stroke-dasharray="785.4" stroke-dashoffset="0"/>
+                            <circle class="breathing-ring" id="breathingRing" cx="140" cy="140" r="50"/>
+                        </svg>
+                        <div class="timer-display">
+                            <span class="timer-time" id="timerTime">25:00</span>
+                            <span class="timer-label" id="timerLabel">Focus</span>
+                        </div>
+                    </div>
+                    <div class="timer-controls">
+                        <button class="ctrl-btn" id="btnReset">↺</button>
+                        <button class="ctrl-btn ctrl-main" id="btnStartPause">▶</button>
+                        <button class="ctrl-btn" id="btnAdd5">+5</button>
+                    </div>
+                    <div class="timer-extra-controls">
+                        <button class="btn btn-sm btn-outline" id="btnSkipBreak">Skip Break</button>
+                        <button class="btn btn-sm btn-outline" id="btnEndSession">End Session</button>
+                    </div>
+                    <div class="study-extras hidden" id="studyExtras">
+                        <div><span id="studySubjectDisplay"></span> · <span id="studyTopicDisplay"></span></div>
+                        <div><span>Distractions:</span><span id="distractionCount">0</span><button class="btn btn-xs btn-outline" id="btnDistraction">+1</button></div>
+                    </div>
+                    <div class="breathing-control-panel hidden" id="breathingControlPanel">
+                        <div class="control-row"><span class="control-label">Inhale</span><button class="nudge-btn" data-phase="inhale" data-dir="-">−</button><span class="nudge-value" id="inhaleValue">4</span><button class="nudge-btn" data-phase="inhale" data-dir="+">+</button></div>
+                        <div class="control-row"><span class="control-label">Hold</span><button class="nudge-btn" data-phase="hold" data-dir="-">−</button><span class="nudge-value" id="holdValue">4</span><button class="nudge-btn" data-phase="hold" data-dir="+">+</button></div>
+                        <div class="control-row"><span class="control-label">Exhale</span><button class="nudge-btn" data-phase="exhale" data-dir="-">−</button><span class="nudge-value" id="exhaleValue">4</span><button class="nudge-btn" data-phase="exhale" data-dir="+">+</button></div>
+                        <div class="control-row"><span class="control-label">Hold</span><button class="nudge-btn" data-phase="hold2" data-dir="-">−</button><span class="nudge-value" id="hold2Value">4</span><button class="nudge-btn" data-phase="hold2" data-dir="+">+</button></div>
+                        <div class="control-row"><span class="control-label">Cycles</span><button class="nudge-btn" data-phase="cycles" data-dir="-">−</button><span class="nudge-value" id="cyclesValue">5</span><button class="nudge-btn" data-phase="cycles" data-dir="+">+</button></div>
+                        <div class="preset-row">
+                            <button class="btn btn-sm btn-outline preset-btn" data-preset="box">Box (4-4-4-4)</button>
+                            <button class="btn btn-sm btn-outline preset-btn" data-preset="478">4-7-8</button>
+                            <button class="btn btn-sm btn-outline preset-btn" data-preset="deep">Deep (5-5-5-5)</button>
+                        </div>
+                    </div>
+                    <button class="btn btn-ghost" id="btnBackToModes">← Back to Modes</button>
+                </div>
+                <div class="timer-side-panel" id="timerSidePanel" style="display:none; background:var(--surface); border-radius:var(--radius); padding:20px;">
+                    <div id="sideDigitalClock" style="font-size:2.5rem; font-weight:200;"></div>
+                    <div id="sideDate" style="color:var(--text-secondary);"></div>
+                    <div style="margin-top:15px;"><p><strong>Session:</strong> <span id="sideModeName">-</span></p><p><strong>Phase:</strong> <span id="sideRoundInfo">-</span></p></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="view" id="analyticsView">
+            <div class="section-header"><h2>Analytics</h2></div>
+            <div class="stats-row"><div class="stat-card"><span class="stat-value" id="statTodayFocus">0m</span></div><div class="stat-card"><span class="stat-value" id="statSessions">0</span></div><div class="stat-card"><span class="stat-value" id="statStreak">0🔥</span></div></div>
+            <div class="weekly-chart" id="weeklyChart"></div>
+            <div class="mode-usage-bars" id="modeUsageBars"></div>
+            <div class="session-history-list" id="sessionHistoryList"></div>
+            <button class="btn btn-outline" id="btnExportJSON">📥 Export JSON</button>
+            <button class="btn btn-outline btn-danger" id="btnClearHistory">🗑 Clear</button>
+        </section>
+
+        <section class="view" id="settingsView">
+            <div class="section-header"><h2>Settings</h2></div>
+            <label><span>Daily Goal (min)</span><input type="number" id="dailyGoalInput" value="120" class="form-input"></label>
+            <label><span>Sound</span><input type="checkbox" id="soundCheckbox" checked></label>
+            <label><span>Notifications</span><input type="checkbox" id="notifCheckbox" checked></label>
+            <label><span>Auto Next</span><input type="checkbox" id="autoNextCheckbox"></label>
+            <div style="margin-top:20px;"><h4>Accent Color</h4><div id="colorThemeRow" style="display:flex; gap:10px;"></div></div>
+        </section>
+    </main>
+
+    <nav class="bottom-nav">
+        <button class="nav-btn active" data-view="homeView"><span>🏠</span>Modes</button>
+        <button class="nav-btn" data-view="timerView"><span>⏱️</span>Timer</button>
+        <button class="nav-btn" data-view="analyticsView"><span>📊</span>Analytics</button>
+        <button class="nav-btn" data-view="settingsView"><span>⚙️</span>Settings</button>
+    </nav>
+
+    <div class="modal-overlay hidden" id="sessionSummaryModal"><div class="modal-content"><h3>🎉 Session Complete!</h3><div id="summaryDetails"></div><button class="btn btn-primary" id="btnCloseSummary">OK</button></div></div>
+    <div class="modal-overlay hidden" id="breathingSetupModal"><div class="modal-content"><h3>🧘‍♀️ Breathing Setup</h3>
+        <div class="form-row"><input type="number" id="breathingInhaleInput" value="4" class="form-input" placeholder="Inhale"><input type="number" id="breathingHoldInput" value="4" class="form-input" placeholder="Hold"></div>
+        <div class="form-row"><input type="number" id="breathingExhaleInput" value="4" class="form-input" placeholder="Exhale"><input type="number" id="breathingHold2Input" value="4" class="form-input" placeholder="Hold"></div>
+        <input type="number" id="breathingCyclesInput" value="5" class="form-input" placeholder="Cycles">
+        <div style="display:flex; gap:10px; margin-top:12px;"><button class="btn btn-outline" id="btnCancelBreathing">Cancel</button><button class="btn btn-primary" id="btnConfirmBreathing">Start</button></div>
+    </div></div>
+    <div class="toast-container" id="toastContainer" style="position:fixed; top:20px; right:20px; z-index:300;"></div>
+
+    <script>
+        (function() {
+            const MODES = [
+                { id: 'pomodoro', name: 'Pomodoro', icon: '🍅', defaults: { focus: 25, break: 5, longBreak: 15, rounds: 4 } },
+                { id: 'study', name: 'Study Mode', icon: '📚', defaults: { focus: 50, break: 10 } },
+                { id: 'deepwork', name: 'Deep Work', icon: '🧠', defaults: { focus: 90, break: 15 } },
+                { id: 'countdown', name: 'Countdown', icon: '⏲️', defaults: { focus: 30 } },
+                { id: 'stopwatch', name: 'Stopwatch', icon: '⏱️', defaults: {} },
+                { id: 'interval', name: 'Interval', icon: '🔄', defaults: { focus: 30, break: 10, rounds: 6 } },
+                { id: 'exam', name: 'Exam Mode', icon: '📝', defaults: { questions: 20, time: 60 } },
+                { id: 'reading', name: 'Reading', icon: '📖', defaults: { pages: 30, time: 30 } },
+                { id: 'coding', name: 'Coding Sprint', icon: '💻', defaults: { focus: 45 } },
+                { id: 'workout', name: 'Workout', icon: '💪', defaults: { exercise: 45, rest: 15, rounds: 8 } },
+                { id: 'breathing', name: 'Breathing', icon: '🧘‍♀️', defaults: { inhale: 4, hold: 4, exhale: 4, hold2: 4, cycles: 5 } },
+                { id: 'prayer', name: 'Prayer/Break', icon: '🙏', defaults: { focus: 10, break: 2 } },
+                { id: 'custom', name: 'Custom', icon: '⚙️', defaults: { focus: 30, break: 5, rounds: 4 } }
+            ];
+
+            let currentMode = null, timerInterval = null, timeLeft = 0, totalDuration = 0, isRunning = false, isBreak = false, currentRound = 1, totalRounds = 1;
+            let sessionData = { mode: '', subject: '', topic: '', goal: '', notes: '', distractions: 0, focusScore: 0 };
+            let soundEnabled = true, notifEnabled = true, autoNext = false, desktopLayout = false;
+            let breathingPhases = [], breathingPhaseIndex = 0, breathingCycle = 0, breathingMaxCycles = 0;
+            let dynamicBreathingParams = { inhale: 4, hold: 4, exhale: 4, hold2: 4, cycles: 5 };
+
+            const $ = s => document.querySelector(s), $$ = s => document.querySelectorAll(s);
+
+            function showToast(msg) { const t = document.createElement('div'); t.className='toast'; t.textContent=msg; $('#toastContainer').appendChild(t); setTimeout(()=>t.remove(),2500); }
+            function playSound(t='complete') { if(!soundEnabled) return; try { const ctx=new AudioContext(), o=ctx.createOscillator(), g=ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.frequency.value=t==='complete'?880:660; g.gain.setValueAtTime(0.3,ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.01,ctx.currentTime+0.4); o.start(); o.stop(ctx.currentTime+0.4); } catch(e){} }
+
+            function saveData(k,v) { localStorage.setItem('fikr_'+k, JSON.stringify(v)); }
+            function loadData(k,d) { const v=localStorage.getItem('fikr_'+k); return v ? JSON.parse(v) : d; }
+            function saveSettings() { saveData('settings',{sound:soundEnabled,notif:notifEnabled,autoNext,dailyGoal:+$('#dailyGoalInput').value,primaryColor:getComputedStyle(document.documentElement).getPropertyValue('--primary').trim(),desktopLayout,dynamicBreathingParams}); }
+            function loadSettings() {
+                const s = loadData('settings',{sound:true,notif:true,autoNext:false,dailyGoal:120,primaryColor:'#7c5ce7',desktopLayout:false,dynamicBreathingParams:{inhale:4,hold:4,exhale:4,hold2:4,cycles:5}});
+                soundEnabled=s.sound; notifEnabled=s.notif; autoNext=s.autoNext; $('#dailyGoalInput').value=s.dailyGoal;
+                $('#soundCheckbox').checked=soundEnabled; $('#notifCheckbox').checked=notifEnabled; $('#autoNextCheckbox').checked=autoNext;
+                if(s.primaryColor) document.documentElement.style.setProperty('--primary',s.primaryColor);
+                dynamicBreathingParams = s.dynamicBreathingParams || {inhale:4,hold:4,exhale:4,hold2:4,cycles:5};
+                updateSoundIcon();
+                if(s.desktopLayout) { document.body.classList.add('desktop-layout'); desktopLayout=true; $('#layoutToggleBtn').textContent='📱'; }
+                else { document.body.classList.remove('desktop-layout'); $('#layoutToggleBtn').textContent='💻'; }
+                updateColorSwatches();
+            }
+            function updateSoundIcon() { $('#soundIcon').textContent = soundEnabled ? '🔔' : '🔕'; }
+
+            function updateClock() {
+                const now = new Date(), ts = now.toLocaleTimeString();
+                $('#digitalClockSmall').textContent = ts;
+                $('#bigDigitalTime').textContent = ts;
+                $('#sideDigitalClock').textContent = ts;
+                const h = now.getHours()%12, m = now.getMinutes(), s = now.getSeconds();
+                $('#hourHand').setAttribute('transform',`rotate(${h*30+m*0.5} 22 22)`);
+                $('#minuteHand').setAttribute('transform',`rotate(${m*6+s*0.1} 22 22)`);
+                $('#secondHand').setAttribute('transform',`rotate(${s*6} 22 22)`);
+            }
+            setInterval(updateClock,1000); updateClock();
+
+            function switchView(id) { $$('.view').forEach(v=>v.classList.remove('active')); $(`#${id}`).classList.add('active'); $$('.nav-btn').forEach(b=>b.classList.remove('active')); $(`.nav-btn[data-view="${id}"]`)?.classList.add('active'); if(id==='analyticsView') updateAnalytics(); }
+            $$('.nav-btn').forEach(b=>b.addEventListener('click',()=>switchView(b.dataset.view)));
+
+            function renderModeCards() {
+                const grid = $('#modeCardsGrid');
+                grid.innerHTML = MODES.map(m=>`<div class="mode-card" data-mode="${m.id}"><span class="mode-icon">${m.icon}</span><span class="mode-name">${m.name}</span></div>`).join('');
+                document.querySelectorAll('.mode-card').forEach(c=>c.addEventListener('click',()=>startMode(c.dataset.mode)));
+                $('#quickModeSelect').innerHTML = MODES.map(m=>`<option value="${m.id}">${m.icon} ${m.name}</option>`).join('');
+            }
+
+            function updateBreathingControlPanel() {
+                $('#inhaleValue').textContent = dynamicBreathingParams.inhale;
+                $('#holdValue').textContent = dynamicBreathingParams.hold;
+                $('#exhaleValue').textContent = dynamicBreathingParams.exhale;
+                $('#hold2Value').textContent = dynamicBreathingParams.hold2;
+                $('#cyclesValue').textContent = dynamicBreathingParams.cycles;
+            }
+
+            function rebuildBreathingPhases() {
+                const p = [];
+                p.push({name:'Inhale', duration: dynamicBreathingParams.inhale});
+                if(dynamicBreathingParams.hold > 0) p.push({name:'Hold', duration: dynamicBreathingParams.hold});
+                p.push({name:'Exhale', duration: dynamicBreathingParams.exhale});
+                if(dynamicBreathingParams.hold2 > 0) p.push({name:'Hold', duration: dynamicBreathingParams.hold2});
+                return p;
+            }
+
+            function startMode(modeId, customParams={}) {
+                const mode = MODES.find(m=>m.id===modeId); if(!mode) return;
+                currentMode = mode;
+                sessionData = { mode: mode.name, subject:'', topic:'', goal:'', notes:'', distractions:0, focusScore:0, startTime: Date.now() };
+                isBreak = false; currentRound = 1; breathingPhaseIndex = 0; breathingCycle = 0;
+                $('#breathingPhaseText').classList.add('hidden'); $('#timerLabel').classList.remove('hidden');
+                $('#circularTimerContainer').classList.remove('breathing-inhale','breathing-exhale');
+                const ring = $('#breathingRing'); ring.style.transition='none'; ring.setAttribute('r','50'); ring.style.opacity='0';
+                $('#breathingControlPanel').classList.add('hidden');
+
+                const defs = mode.defaults;
+                if(modeId === 'breathing') {
+                    dynamicBreathingParams = {
+                        inhale: parseInt(customParams.inhale || dynamicBreathingParams.inhale),
+                        hold: parseInt(customParams.hold ?? dynamicBreathingParams.hold),
+                        exhale: parseInt(customParams.exhale || dynamicBreathingParams.exhale),
+                        hold2: parseInt(customParams.hold2 ?? dynamicBreathingParams.hold2),
+                        cycles: parseInt(customParams.cycles || dynamicBreathingParams.cycles)
+                    };
+                    breathingMaxCycles = dynamicBreathingParams.cycles;
+                    breathingPhases = rebuildBreathingPhases();
+                    breathingPhaseIndex = 0; breathingCycle = 0;
+                    timeLeft = breathingPhases[0].duration; totalDuration = timeLeft;
+                    totalRounds = breathingMaxCycles;
+                    $('#breathingPhaseText').classList.remove('hidden'); $('#timerLabel').classList.add('hidden');
+                    $('#breathingControlPanel').classList.remove('hidden');
+                    updateBreathingControlPanel();
+                    updateBreathingUI();
+                } else {
+                    let focusSec, breakSec, rounds;
+                    switch(modeId){
+                        case 'pomodoro': focusSec=defs.focus*60; breakSec=defs.break*60; rounds=defs.rounds; break;
+                        case 'study': focusSec=(customParams.studyDuration||defs.focus)*60; breakSec=(customParams.breakDuration||defs.break)*60; rounds=1; sessionData.subject=customParams.subject||''; sessionData.topic=customParams.topic||''; sessionData.goal=customParams.goal||''; break;
+                        case 'deepwork': focusSec=defs.focus*60; breakSec=defs.break*60; rounds=1; break;
+                        case 'countdown': focusSec=(customParams.duration||defs.focus)*60; breakSec=0; rounds=1; break;
+                        case 'stopwatch': focusSec=0; breakSec=0; rounds=1; break;
+                        case 'interval': focusSec=defs.focus*60; breakSec=defs.break*60; rounds=defs.rounds; break;
+                        case 'exam': focusSec=(customParams.time||defs.time)*60; breakSec=0; rounds=1; sessionData.goal=`${customParams.questions||defs.questions} questions`; break;
+                        case 'reading': focusSec=(customParams.time||defs.time)*60; breakSec=0; rounds=1; sessionData.subject=customParams.book||''; sessionData.goal=`${customParams.pages||defs.pages} pages`; break;
+                        case 'coding': focusSec=(customParams.duration||defs.focus)*60; breakSec=0; rounds=1; sessionData.subject=customParams.project||''; sessionData.topic=customParams.task||''; break;
+                        case 'workout': focusSec=customParams.exercise||defs.exercise; breakSec=customParams.rest||defs.rest; rounds=customParams.rounds||defs.rounds; break;
+                        case 'prayer': focusSec=defs.focus*60; breakSec=defs.break*60; rounds=1; break;
+                        case 'custom': focusSec=(customParams.focus||defs.focus)*60; breakSec=(customParams.break||defs.break)*60; rounds=customParams.rounds||defs.rounds; break;
+                        default: focusSec=1500; breakSec=300; rounds=1;
+                    }
+                    timeLeft = focusSec; totalDuration = focusSec; totalRounds = rounds;
+                    $('#timerLabel').textContent = modeId==='stopwatch' ? 'Stopwatch' : 'Focus';
+                }
+                updateTimerDisplay();
+                $('#timerModeIndicator').textContent = `${mode.icon} ${mode.name}`;
+                $('#timerRoundInfo').textContent = totalRounds>1 ? `Round ${currentRound}/${totalRounds}` : '';
+                stopTimer(); isRunning = false; $('#btnStartPause').textContent = '▶';
+                updateProgressCircle(1);
+                switchView('timerView');
+                if(modeId==='stopwatch') { timeLeft=0; $('#timerTime').textContent='00:00'; }
+                updateSidePanel();
+            }
+
+            function stopTimer() { if(timerInterval) { clearInterval(timerInterval); timerInterval=null; } }
+            function startPause() {
+                if(!currentMode) return;
+                if(currentMode.id==='stopwatch'){
+                    if(isRunning){ stopTimer(); isRunning=false; $('#btnStartPause').textContent='▶'; }
+                    else { isRunning=true; timerInterval=setInterval(()=>{ timeLeft++; $('#timerTime').textContent=formatTime(timeLeft); },1000); $('#btnStartPause').textContent='⏸'; }
+                    return;
+                }
+                if(isRunning){ stopTimer(); isRunning=false; $('#btnStartPause').textContent='▶'; }
+                else { isRunning=true; $('#btnStartPause').textContent='⏸';
+                    timerInterval=setInterval(()=>{ if(timeLeft<=0){ handleTimerEnd(); return; } timeLeft--; updateTimerDisplay(); updateProgressCircle(timeLeft/totalDuration); document.title=`${formatTime(timeLeft)} - Fikr Timer`; },1000); }
+            }
+            function formatTime(s) { const m=Math.floor(s/60), sec=s%60; return `${m.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`; }
+            function updateTimerDisplay() { $('#timerTime').textContent = formatTime(timeLeft); }
+            function updateProgressCircle(ratio) { $('#timerProgressCircle').style.strokeDashoffset = 785.4 * (1 - ratio); }
+
+            function updateBreathingUI() {
+                if(currentMode?.id !== 'breathing') return;
+                const phase = breathingPhases[breathingPhaseIndex]; if(!phase) return;
+                $('#breathingPhaseText').textContent = phase.name.toUpperCase();
+                const container = $('#circularTimerContainer'); container.classList.remove('breathing-inhale','breathing-exhale');
+                if(phase.name==='Inhale') container.classList.add('breathing-inhale');
+                else if(phase.name==='Exhale') container.classList.add('breathing-exhale');
+                const ring = $('#breathingRing'); ring.style.transition = `r ${phase.duration}s ease, opacity 0.3s`;
+                if(phase.name==='Inhale'){ ring.setAttribute('r','130'); ring.style.opacity='0.3'; }
+                else if(phase.name==='Exhale'){ ring.setAttribute('r','50'); ring.style.opacity='0.15'; }
+                else { ring.style.opacity='0.2'; }
+                updateProgressCircle(timeLeft/totalDuration);
+                $('#timerRoundInfo').textContent = `Cycle ${breathingCycle+1}/${breathingMaxCycles}`;
+            }
+
+            function handleTimerEnd() {
+                stopTimer(); isRunning=false;
+                if(currentMode.id==='stopwatch') return;
+                if(currentMode.id === 'breathing') {
+                    breathingPhaseIndex++;
+                    if(breathingPhaseIndex >= breathingPhases.length) {
+                        breathingPhaseIndex = 0; breathingCycle++;
+                        if(breathingCycle >= breathingMaxCycles) { endSession(true); return; }
+                        // Rebuild phases in case user changed durations
+                        breathingPhases = rebuildBreathingPhases();
+                    }
+                    const nextPhase = breathingPhases[breathingPhaseIndex];
+                    timeLeft = nextPhase.duration; totalDuration = nextPhase.duration;
+                    updateBreathingUI(); updateTimerDisplay();
+                    if(autoNext) startPause(); else $('#btnStartPause').textContent='▶';
+                    playSound('tick'); return;
+                }
+                if(!isBreak && totalRounds>1 && currentRound<totalRounds && breakDuration()>0){
+                    isBreak=true; currentRound++; timeLeft=breakDuration(); totalDuration=timeLeft;
+                    $('#timerLabel').textContent='Break'; $('#timerRoundInfo').textContent=`Round ${currentRound}/${totalRounds} - Break`;
+                    updateTimerDisplay(); updateProgressCircle(1);
+                    if(autoNext) startPause(); else $('#btnStartPause').textContent='▶'; playSound('tick');
+                } else if(!isBreak && totalRounds>1 && currentRound===totalRounds){ endSession(true); }
+                else { endSession(true); }
+            }
+            function breakDuration() {
+                if(!currentMode) return 300; const d=currentMode.defaults;
+                if(currentMode.id==='pomodoro') return (currentRound%4===0?d.longBreak:d.break)*60;
+                if(currentMode.id==='interval') return d.break*60; if(currentMode.id==='workout') return d.rest;
+                return d.break?d.break*60:0;
+            }
+            function add5Minutes(){ if(currentMode && currentMode.id!=='stopwatch' && currentMode.id!=='breathing'){ timeLeft+=300; totalDuration+=300; updateTimerDisplay(); updateProgressCircle(timeLeft/totalDuration); } }
+            function resetTimer(){ if(currentMode) startMode(currentMode.id, getCurrentCustomParams()); }
+            function skipBreak(){ if(isBreak && currentMode && currentMode.id!=='breathing'){ isBreak=false; timeLeft=(currentMode.id==='workout'?currentMode.defaults.exercise:currentMode.defaults.focus*60); totalDuration=timeLeft; $('#timerLabel').textContent='Focus'; updateTimerDisplay(); updateProgressCircle(1); } }
+            function endSession(completed=true){
+                stopTimer(); isRunning=false;
+                if(completed && currentMode){
+                    const durMin = Math.round((totalDuration-timeLeft)/60);
+                    sessionData.focusScore = Math.min(100, Math.round((durMin/(totalDuration/60))*100));
+                    saveSession({...sessionData, duration:durMin, date:new Date().toISOString(), mode:currentMode.name});
+                    $('#summaryDetails').innerHTML = `Mode: ${currentMode.name}<br>Duration: ${durMin} min<br>Focus Score: ${sessionData.focusScore}%`;
+                    $('#sessionSummaryModal').classList.remove('hidden');
+                }
+                $('#timerTime').textContent = currentMode?.id==='stopwatch' ? '00:00' : formatTime(totalDuration);
+                document.title = 'Fikr Timer'; $('#btnStartPause').textContent='▶'; updateSidePanel();
+            }
+            function getCurrentCustomParams() { return { ...dynamicBreathingParams }; }
+            function saveSession(s){ const h=loadData('history',[]); h.unshift(s); saveData('history',h.slice(0,100)); }
+            function updateSidePanel() {
+                if(!desktopLayout) return;
+                $('#sideModeName').textContent = currentMode ? currentMode.name : '-';
+                if(currentMode?.id==='breathing') $('#sideRoundInfo').textContent = `Cycle ${breathingCycle+1}/${breathingMaxCycles} - ${breathingPhases[breathingPhaseIndex]?.name}`;
+                else $('#sideRoundInfo').textContent = totalRounds>1 ? `${currentRound}/${totalRounds} ${isBreak?'Break':'Focus'}` : (isBreak?'Break':'Focus');
+            }
+
+            // Dynamic breathing controls
+            document.querySelectorAll('.nudge-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const phase = btn.dataset.phase;
+                    const dir = btn.dataset.dir === '+' ? 1 : -1;
+                    const newVal = Math.max(1, dynamicBreathingParams[phase] + dir);
+                    dynamicBreathingParams[phase] = newVal;
+                    updateBreathingControlPanel();
+                    if(currentMode?.id === 'breathing') {
+                        // Rebuild phases array for future cycles
+                        breathingPhases = rebuildBreathingPhases();
+                        // If currently in a phase that corresponds to this param, adjust its duration?
+                        // For simplicity, changes apply from next cycle or phase change
+                        showToast(`${phase} set to ${newVal}s`);
+                    }
+                    saveSettings();
+                });
+            });
+            document.querySelectorAll('.preset-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const preset = btn.dataset.preset;
+                    if(preset === 'box') { dynamicBreathingParams = { inhale:4, hold:4, exhale:4, hold2:4, cycles:5 }; }
+                    else if(preset === '478') { dynamicBreathingParams = { inhale:4, hold:7, exhale:8, hold2:0, cycles:5 }; }
+                    else if(preset === 'deep') { dynamicBreathingParams = { inhale:5, hold:5, exhale:5, hold2:5, cycles:5 }; }
+                    updateBreathingControlPanel();
+                    if(currentMode?.id === 'breathing') {
+                        breathingPhases = rebuildBreathingPhases();
+                        showToast('Pattern applied');
+                    }
+                    saveSettings();
+                });
+            });
+
+            function updateColorSwatches() { const cur=getComputedStyle(document.documentElement).getPropertyValue('--primary').trim(); $$('.color-swatch').forEach(s=>s.classList.toggle('active',s.dataset.color===cur)); }
+
+            // Event bindings
+            $('#btnStartPause').addEventListener('click',startPause);
+            $('#btnReset').addEventListener('click',resetTimer);
+            $('#btnAdd5').addEventListener('click',add5Minutes);
+            $('#btnSkipBreak').addEventListener('click',skipBreak);
+            $('#btnEndSession').addEventListener('click',()=>endSession(false));
+            $('#btnBackToModes').addEventListener('click',()=>{stopTimer(); switchView('homeView');});
+            $('#btnCloseSummary').addEventListener('click',()=>{$('#sessionSummaryModal').classList.add('hidden'); switchView('homeView');});
+            $('#soundToggle').addEventListener('click',()=>{soundEnabled=!soundEnabled; updateSoundIcon(); saveSettings();});
+            $('#themeToggle').addEventListener('click',()=>{const html=document.documentElement; html.setAttribute('data-theme',html.getAttribute('data-theme')==='dark'?'light':'dark'); $('#themeIcon').textContent=html.getAttribute('data-theme')==='dark'?'☀️':'🌙';});
+            $('#soundCheckbox').addEventListener('change',e=>{soundEnabled=e.target.checked; saveSettings();});
+            $('#notifCheckbox').addEventListener('change',e=>{notifEnabled=e.target.checked; if(notifEnabled) Notification.requestPermission(); saveSettings();});
+            $('#autoNextCheckbox').addEventListener('change',e=>{autoNext=e.target.checked; saveSettings();});
+            $('#dailyGoalInput').addEventListener('change',saveSettings);
+            $('#btnDistraction').addEventListener('click',()=>{sessionData.distractions++; $('#distractionCount').textContent=sessionData.distractions;});
+            $('#quickStartBtn').addEventListener('click',()=>startMode($('#quickModeSelect').value));
+            $('#btnExportJSON').addEventListener('click',()=>{const d=loadData('history',[]); const b=new Blob([JSON.stringify(d)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='fikr_history.json'; a.click();});
+            $('#btnClearHistory').addEventListener('click',()=>{if(confirm('Clear?')){saveData('history',[]); updateAnalytics();}});
+            $('#digitalClockBtn').addEventListener('click',()=>$('#digitalClockOverlay').classList.remove('hidden'));
+            $('#closeOverlayBtn').addEventListener('click',()=>$('#digitalClockOverlay').classList.add('hidden'));
+            $('#layoutToggleBtn').addEventListener('click',()=>{desktopLayout=!desktopLayout; document.body.classList.toggle('desktop-layout',desktopLayout); $('#layoutToggleBtn').textContent=desktopLayout?'📱':'💻'; updateSidePanel(); saveSettings();});
+            $('#colorThemeRow').addEventListener('click',e=>{const sw=e.target.closest('.color-swatch'); if(sw){ document.documentElement.style.setProperty('--primary',sw.dataset.color); updateColorSwatches(); saveSettings(); }});
+            document.querySelectorAll('.mode-card[data-mode="breathing"]').forEach(c=>c.addEventListener('click',e=>{e.stopPropagation(); $('#breathingSetupModal').classList.remove('hidden');}));
+            $('#btnConfirmBreathing').addEventListener('click',()=>{$('#breathingSetupModal').classList.add('hidden'); startMode('breathing',{
+                inhale: parseInt($('#breathingInhaleInput').value)||4,
+                hold: parseInt($('#breathingHoldInput').value)||4,
+                exhale: parseInt($('#breathingExhaleInput').value)||4,
+                hold2: parseInt($('#breathingHold2Input').value)||4,
+                cycles: parseInt($('#breathingCyclesInput').value)||5
+            });});
+            $('#btnCancelBreathing').addEventListener('click',()=>$('#breathingSetupModal').classList.add('hidden'));
+
+            document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT') return; if(e.code==='Space'){e.preventDefault(); startPause();} if(e.code==='KeyR') resetTimer(); if(e.code==='Equal'&&e.shiftKey) add5Minutes();});
+
+            function updateAnalytics() {
+                const history = loadData('history',[]); const today = new Date().toDateString();
+                const todaySessions = history.filter(s=>new Date(s.date).toDateString()===today);
+                const todayMin = todaySessions.reduce((a,s)=>a+(s.duration||0),0);
+                $('#statTodayFocus').textContent = `${todayMin}m`; $('#statSessions').textContent = todaySessions.length;
+                $('#statStreak').textContent = `${calcStreak(history)}🔥`;
+                renderWeeklyChart(history); renderModeUsage(history); renderHistoryList(history);
+            }
+            function calcStreak(history){ let s=0; const dates=[...new Set(history.map(h=>new Date(h.date).toDateString()))].sort().reverse(); if(!dates.length) return 0; const today=new Date().toDateString(); if(dates[0]!==today&&dates[0]!==new Date(Date.now()-86400000).toDateString()) return 0; for(let i=0;i<dates.length;i++){ const d=new Date(dates[i]); const exp=new Date(Date.now()-i*86400000); if(d.toDateString()===exp.toDateString()) s++; else break; } return s; }
+            function renderWeeklyChart(history){ const c=$('#weeklyChart'); c.innerHTML=''; const days=[]; for(let i=6;i>=0;i--){days.push(new Date(Date.now()-i*86400000).toDateString());} const data=days.map(d=>history.filter(s=>new Date(s.date).toDateString()===d).reduce((a,s)=>a+(s.duration||0),0)); const max=Math.max(...data,1); days.forEach((d,i)=>{const bar=document.createElement('div'); bar.className='chart-bar'; bar.style.height=`${(data[i]/max)*100}px`; bar.title=`${d}: ${data[i]}m`; c.appendChild(bar);}); }
+            function renderModeUsage(history){ const map={}; history.forEach(s=>{map[s.mode]=(map[s.mode]||0)+(s.duration||0);}); const c=$('#modeUsageBars'); c.innerHTML=''; Object.entries(map).forEach(([mode,min])=>{const row=document.createElement('div'); row.innerHTML=`<span>${mode}</span><div style="background:var(--border); height:8px;"><div style="width:${Math.min(100,min/10)}%; background:var(--primary); height:100%;"></div></div><span>${min}m</span>`; c.appendChild(row);}); }
+            function renderHistoryList(history){ const c=$('#sessionHistoryList'); c.innerHTML=''; history.slice(0,20).forEach(s=>{const d=document.createElement('div'); d.innerHTML=`<span>${s.mode}</span><span>${s.duration}m</span>`; c.appendChild(d);}); }
+
+            renderModeCards(); loadSettings(); if(notifEnabled) Notification.requestPermission(); switchView('homeView'); updateColorSwatches();
+            const colorRow = $('#colorThemeRow');
+            colorRow.innerHTML = ['#7c5ce7','#3b82f6','#10b981','#f59e0b','#ef4444','#ec4899'].map(c=>`<span class="color-swatch" style="background:${c};" data-color="${c}"></span>`).join('');
+            updateColorSwatches();
+        })();
+    </script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('sw.js')
+            .then(reg => console.log('SW registered'))
+            .catch(err => console.log('SW failed', err));
+        });
+      }
+    </script>  
+</body>
+</html>
