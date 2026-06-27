@@ -7,42 +7,157 @@
     <meta name="theme-color" content="#7c5ce7">
     <link rel="manifest" href="manifest.json">
     <style>
-        /* --- Copy your full CSS here from earlier (or the one I provided) --- */
-        /* I'll include a minimal set for brevity, but you should paste the full style.css */
         :root {
             --bg: #0b0b1a;
             --surface: rgba(20,20,40,0.7);
+            --surface2: rgba(35,35,60,0.9);
             --text: #f0f0ff;
+            --text-secondary: #b0b0d0;
             --primary: #7c5ce7;
+            --primary-glow: 0 0 25px rgba(124,92,231,0.5);
+            --danger: #f87171;
+            --success: #4ade80;
+            --border: rgba(255,255,255,0.1);
             --radius: 24px;
+            --transition: 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+            --glass-bg: rgba(255,255,255,0.05);
+        }
+        [data-theme="light"] {
+            --bg: #f4f4ff;
+            --surface: rgba(255,255,255,0.8);
+            --surface2: rgba(240,240,255,0.95);
+            --text: #1a1a2e;
+            --text-secondary: #4a4a6a;
+            --primary: #5a3ec8;
+            --primary-glow: 0 0 20px rgba(90,62,200,0.4);
+            --glass-bg: rgba(0,0,0,0.03);
         }
         * { margin:0; padding:0; box-sizing:border-box; }
-        body { font-family: 'Inter', system-ui, sans-serif; background:var(--bg); color:var(--text); min-height:100vh; display:flex; flex-direction:column; }
-        .header { display:flex; justify-content:space-between; padding:12px; backdrop-filter:blur(20px); background:var(--surface); border-bottom:1px solid rgba(255,255,255,0.1); }
-        .main { flex:1; overflow-y:auto; padding:20px; }
-        .bottom-nav { display:flex; justify-content:space-around; padding:10px; background:var(--surface); border-top:1px solid rgba(255,255,255,0.1); }
-        .nav-item { background:none; border:none; color:var(--text); font-size:0.8rem; cursor:pointer; }
-        .nav-item.active { color:var(--primary); font-weight:bold; }
-        .view { display:none; }
-        .view.active { display:block; }
-        .mode-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
-        .mode-card { background:rgba(255,255,255,0.05); border-radius:var(--radius); padding:20px; text-align:center; cursor:pointer; }
-        .mode-card:hover { background:var(--primary); }
-        .timer-circle { width:200px; height:200px; margin:20px auto; position:relative; }
-        .timer-svg { width:100%; height:100%; transform:rotate(-90deg); }
-        .timer-bg { fill:none; stroke:rgba(255,255,255,0.1); stroke-width:6; }
-        .timer-progress { fill:none; stroke:var(--primary); stroke-width:6; stroke-linecap:round; transition:stroke-dashoffset 0.3s; }
-        .timer-time { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:2.5rem; font-weight:700; }
-        button { background:var(--primary); color:white; border:none; padding:10px 20px; border-radius:40px; font-weight:600; cursor:pointer; }
-        .btn-outline { background:transparent; border:1px solid rgba(255,255,255,0.2); }
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: var(--bg); color: var(--text);
+            min-height: 100vh; display: flex; flex-direction: column;
+            transition: background 0.3s, color 0.3s;
+            user-select: none; -webkit-tap-highlight-color: transparent;
+        }
+        .header {
+            background: var(--surface); backdrop-filter: blur(20px);
+            padding: 12px 20px; display: flex; justify-content: space-between;
+            align-items: center; border-bottom: 1px solid var(--border);
+            position: sticky; top:0; z-index:100;
+        }
+        .header h1 {
+            font-weight: 800; background: linear-gradient(135deg, var(--primary), #c084fc);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .icon-btn {
+            background: var(--glass-bg); border: none; font-size: 1.4rem;
+            padding: 8px; border-radius: 40px; color: var(--text);
+            cursor: pointer; transition: 0.2s;
+        }
+        .icon-btn:hover { background: var(--primary); color: white; transform: scale(1.1); }
+        .main { flex: 1; overflow-y: auto; padding: 20px 16px 100px; }
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: var(--surface); backdrop-filter: blur(20px);
+            border-top: 1px solid var(--border);
+            display: flex; justify-content: space-around; padding: 10px;
+            z-index: 100;
+        }
+        .nav-item {
+            background: none; border: none; color: var(--text-secondary);
+            display: flex; flex-direction: column; align-items: center; gap: 4px;
+            font-size: 0.75rem; cursor: pointer;
+        }
+        .nav-item.active { color: var(--primary); font-weight: 600; }
+        .view { display: none; }
+        .view.active { display: block; }
+        .mode-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(140px,1fr));
+            gap: 14px; margin-bottom: 24px;
+        }
+        .mode-card {
+            background: var(--glass-bg); backdrop-filter: blur(10px);
+            border: 1px solid var(--border); border-radius: var(--radius);
+            padding: 20px; text-align: center; cursor: pointer;
+            transition: all var(--transition);
+        }
+        .mode-card:hover {
+            transform: translateY(-3px); border-color: var(--primary);
+            box-shadow: var(--primary-glow);
+        }
+        .mode-icon { font-size: 2.5rem; margin-bottom: 8px; }
+        .mode-name { font-weight: 600; }
+        .timer-circle {
+            position: relative; width: 240px; height: 240px;
+            margin: 20px auto;
+        }
+        .timer-svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+        .timer-bg { fill: none; stroke: var(--border); stroke-width: 6; }
+        .timer-progress {
+            fill: none; stroke: var(--primary); stroke-width: 6;
+            stroke-linecap: round; transition: stroke-dashoffset 0.3s linear;
+        }
+        .timer-time {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%); font-size: 3rem; font-weight: 700;
+        }
+        .timer-label {
+            position: absolute; top: 58%; left: 50%;
+            transform: translate(-50%, 0); color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        .controls {
+            display: flex; justify-content: center; align-items: center; gap: 20px;
+            margin: 20px 0;
+        }
+        .ctrl-btn {
+            background: var(--glass-bg); border: none; border-radius: 50%;
+            width: 55px; height: 55px; font-size: 1.4rem; color: var(--text);
+            cursor: pointer; transition: 0.2s;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .ctrl-btn.start { width: 70px; height: 70px; font-size: 2rem; background: var(--primary); color: white; }
+        .ctrl-btn:hover { background: var(--primary); color: white; }
+        .extra-controls { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+        .btn {
+            padding: 8px 18px; border-radius: 40px; font-weight: 600;
+            cursor: pointer; border: none; background: var(--primary);
+            color: white; transition: 0.2s;
+        }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+        .btn-outline:hover { background: var(--surface2); }
+        .modal {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px); display: flex; align-items: center;
+            justify-content: center; z-index: 200; display: none;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: var(--surface2); border-radius: var(--radius);
+            padding: 24px; max-width: 90vw; width: 350px;
+            text-align: center;
+        }
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; margin-bottom: 4px; }
+        .form-group input {
+            width: 100%; padding: 10px; border-radius: 12px;
+            border: 1px solid var(--border); background: var(--bg);
+            color: var(--text);
+        }
+        .history-item {
+            display: flex; justify-content: space-between;
+            padding: 8px; border-bottom: 1px solid var(--border);
+        }
+        @media (max-width: 480px) {
+            .mode-grid { grid-template-columns: repeat(3, 1fr); }
+        }
     </style>
 </head>
 <body>
     <header class="header">
-        <span>⏳ Fikr Timer</span>
-        <div>
-            <button id="themeBtn">🌓</button>
-        </div>
+        <h1>⏳ Fikr Timer</h1>
+        <button id="themeBtn" class="icon-btn">🌓</button>
     </header>
 
     <main class="main" id="mainContent"></main>
@@ -53,149 +168,513 @@
         <button class="nav-item" data-view="analytics">📊 Stats</button>
     </nav>
 
+    <!-- Session Summary Modal -->
+    <div class="modal" id="summaryModal">
+        <div class="modal-content">
+            <h2>🎉 Session Complete</h2>
+            <div id="summaryDetails"></div>
+            <button class="btn" id="closeSummary">OK</button>
+        </div>
+    </div>
+
     <script>
-        // ---------- SIMPLE WORKING APP ----------
+        // ===================== MODES CONFIG =====================
         const MODES = [
-            { id: 'pomodoro', name: 'Pomodoro', icon: '🍅', focus: 25, break: 5, rounds: 4 },
-            { id: 'deepwork', name: 'Deep Work', icon: '🧠', focus: 90, break: 15 },
-            { id: 'stopwatch', name: 'Stopwatch', icon: '⏱️', type: 'stopwatch' }
+            { id: 'pomodoro', name: 'Pomodoro', icon: '🍅', defaults: { focus: 25, break: 5, longBreak: 15, rounds: 4 } },
+            { id: 'study', name: 'Study Mode', icon: '📚', defaults: { focus: 50, break: 10 } },
+            { id: 'deepwork', name: 'Deep Work', icon: '🧠', defaults: { focus: 90, break: 15 } },
+            { id: 'countdown', name: 'Countdown', icon: '⏲️', defaults: { focus: 30 } },
+            { id: 'stopwatch', name: 'Stopwatch', icon: '⏱️', defaults: {} },
+            { id: 'interval', name: 'Interval', icon: '🔄', defaults: { focus: 30, break: 10, rounds: 6 } },
+            { id: 'exam', name: 'Exam Mode', icon: '📝', defaults: { questions: 20, time: 60 } },
+            { id: 'reading', name: 'Reading', icon: '📖', defaults: { pages: 30, time: 30 } },
+            { id: 'coding', name: 'Coding Sprint', icon: '💻', defaults: { focus: 45 } },
+            { id: 'workout', name: 'Workout', icon: '💪', defaults: { exercise: 45, rest: 15, rounds: 8 } },
+            { id: 'breathing', name: 'Breathing', icon: '🧘', defaults: { inhale: 4, hold: 4, exhale: 4, hold2: 4, cycles: 5 } },
+            { id: 'prayer', name: 'Prayer/Break', icon: '🙏', defaults: { focus: 10, break: 2 } },
+            { id: 'custom', name: 'Custom', icon: '⚙️', defaults: { focus: 30, break: 5, rounds: 4 } }
         ];
 
-        let currentView = 'home';
+        // ===================== STATE =====================
         let currentMode = null;
-        let timer = null;
+        let timerInterval = null;
         let timeLeft = 0;
         let totalDuration = 0;
-        let running = false;
+        let isRunning = false;
+        let isBreak = false;
+        let currentRound = 1;
+        let totalRounds = 1;
+        let sessionData = { mode: '', startTime: null, distractions: 0, score: 0 };
+        let soundEnabled = true;
+        // Breathing state
+        let breathingPhases = [];
+        let breathingPhaseIdx = 0;
+        let breathingCycle = 0;
+        let breathingMaxCycles = 0;
 
-        // Navigation
-        document.querySelectorAll('.nav-item').forEach(btn => {
+        // ===================== UTILS =====================
+        function formatTime(sec) {
+            const m = Math.floor(sec / 60);
+            const s = sec % 60;
+            return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+        function playSound(type = 'complete') {
+            if (!soundEnabled) return;
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain); gain.connect(ctx.destination);
+                osc.frequency.value = type === 'complete' ? 880 : 660;
+                gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+                osc.start(); osc.stop(ctx.currentTime + 0.3);
+            } catch(e) { console.warn('Audio error:', e); }
+        }
+        function saveHistory(session) {
+            let history = JSON.parse(localStorage.getItem('fikr_history') || '[]');
+            history.unshift(session);
+            localStorage.setItem('fikr_history', JSON.stringify(history.slice(0, 100)));
+        }
+
+        // ===================== NAVIGATION =====================
+        let currentView = 'home';
+        const main = document.getElementById('mainContent');
+        const navItems = document.querySelectorAll('.nav-item');
+        navItems.forEach(btn => {
             btn.addEventListener('click', () => {
                 currentView = btn.dataset.view;
-                document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+                navItems.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                renderView(currentView);
+                renderView();
             });
         });
 
-        function renderView(view) {
-            const main = document.getElementById('mainContent');
-            switch(view) {
-                case 'home': renderHome(main); break;
-                case 'timer': renderTimer(main); break;
-                case 'analytics': renderAnalytics(main); break;
-            }
+        function renderView() {
+            main.innerHTML = '';
+            if (currentView === 'home') renderHome();
+            else if (currentView === 'timer') renderTimer();
+            else if (currentView === 'analytics') renderAnalytics();
         }
 
-        function renderHome(container) {
-            container.innerHTML = `
+        // ===================== HOME VIEW =====================
+        function renderHome() {
+            main.innerHTML = `
                 <div class="view active">
-                    <h2>Choose Mode</h2>
+                    <h2>Choose Your Mode</h2>
                     <div class="mode-grid" id="modeGrid"></div>
                 </div>`;
             const grid = document.getElementById('modeGrid');
             grid.innerHTML = MODES.map(m => `
                 <div class="mode-card" data-mode="${m.id}">
-                    <div style="font-size:2rem;">${m.icon}</div>
-                    <div>${m.name}</div>
+                    <div class="mode-icon">${m.icon}</div>
+                    <div class="mode-name">${m.name}</div>
                 </div>`).join('');
             document.querySelectorAll('.mode-card').forEach(card => {
                 card.addEventListener('click', () => {
                     startMode(card.dataset.mode);
                     currentView = 'timer';
-                    renderView('timer');
+                    navItems.forEach(b => b.classList.remove('active'));
+                    document.querySelector(`[data-view="timer"]`).classList.add('active');
+                    renderView();
                 });
             });
         }
 
-        function renderTimer(container) {
+        // ===================== TIMER VIEW =====================
+        function renderTimer() {
             const mode = currentMode || MODES[0];
-            container.innerHTML = `
+            main.innerHTML = `
                 <div class="view active">
-                    <h2>${mode.icon} ${mode.name}</h2>
+                    <h2 style="text-align:center;">${mode.icon} ${mode.name}</h2>
+                    <div style="text-align:center; color:var(--text-secondary);" id="roundInfo">${getRoundInfo()}</div>
                     <div class="timer-circle">
                         <svg class="timer-svg" viewBox="0 0 200 200">
                             <circle class="timer-bg" cx="100" cy="100" r="90"/>
                             <circle class="timer-progress" id="progressCircle" cx="100" cy="100" r="90" stroke-dasharray="565.5" stroke-dashoffset="0"/>
                         </svg>
                         <div class="timer-time" id="timerTime">${formatTime(timeLeft)}</div>
+                        <div class="timer-label" id="timerLabel">${getTimerLabel()}</div>
                     </div>
-                    <div style="text-align:center;">
-                        <button id="startBtn">${running ? '⏸' : '▶'}</button>
-                        <button id="resetBtn" class="btn-outline">↺</button>
+                    <div class="controls">
+                        <button class="ctrl-btn" id="btnReset">↺</button>
+                        <button class="ctrl-btn start" id="btnStart">▶</button>
+                        <button class="ctrl-btn" id="btnAdd5">+5</button>
                     </div>
+                    <div class="extra-controls">
+                        <button class="btn btn-outline" id="btnSkip">Skip Break</button>
+                        <button class="btn btn-outline" id="btnEnd">End Session</button>
+                    </div>
+                    <button class="btn btn-outline" style="margin:20px auto; display:block;" id="btnBack">← Back to Modes</button>
                 </div>`;
-            document.getElementById('startBtn').addEventListener('click', toggleTimer);
-            document.getElementById('resetBtn').addEventListener('click', resetTimer);
+
+            // Event listeners
+            document.getElementById('btnStart').addEventListener('click', toggleTimer);
+            document.getElementById('btnReset').addEventListener('click', resetTimer);
+            document.getElementById('btnAdd5').addEventListener('click', addFiveMinutes);
+            document.getElementById('btnSkip').addEventListener('click', skipBreak);
+            document.getElementById('btnEnd').addEventListener('click', endSession);
+            document.getElementById('btnBack').addEventListener('click', () => {
+                stopTimer();
+                currentView = 'home';
+                navItems.forEach(b => b.classList.remove('active'));
+                document.querySelector(`[data-view="home"]`).classList.add('active');
+                renderView();
+            });
+
             updateProgress();
-        }
-
-        function renderAnalytics(container) {
-            container.innerHTML = `<div class="view active"><h2>Analytics</h2><p>Sessions: ${JSON.parse(localStorage.getItem('fikr_history')||'[]').length}</p></div>`;
-        }
-
-        function startMode(modeId) {
-            const mode = MODES.find(m => m.id === modeId);
-            currentMode = mode;
-            if (mode.type === 'stopwatch') {
-                timeLeft = 0;
-                totalDuration = Infinity;
-            } else {
-                timeLeft = mode.focus * 60;
-                totalDuration = timeLeft;
+            if (isRunning) {
+                document.getElementById('btnStart').textContent = '⏸';
             }
+        }
+
+        function getTimerLabel() {
+            if (!currentMode) return 'Focus';
+            if (currentMode.id === 'stopwatch') return 'Stopwatch';
+            if (currentMode.id === 'breathing') return 'Breathing';
+            return isBreak ? 'Break' : 'Focus';
+        }
+
+        function getRoundInfo() {
+            if (!currentMode) return '';
+            if (currentMode.id === 'breathing') {
+                return `Cycle ${breathingCycle+1}/${breathingMaxCycles}`;
+            }
+            if (totalRounds > 1) {
+                return `Round ${currentRound}/${totalRounds}`;
+            }
+            return '';
+        }
+
+        // ===================== TIMER ENGINE =====================
+        function startMode(modeId, customParams = {}) {
+            const mode = MODES.find(m => m.id === modeId);
+            if (!mode) return;
+            currentMode = mode;
             stopTimer();
-            running = false;
+            isBreak = false;
+            currentRound = 1;
+            sessionData = { mode: mode.name, startTime: Date.now(), distractions: 0, score: 0 };
+
+            const defs = mode.defaults;
+            switch (modeId) {
+                case 'pomodoro':
+                    timeLeft = defs.focus * 60;
+                    totalDuration = timeLeft;
+                    totalRounds = defs.rounds;
+                    break;
+                case 'study':
+                    timeLeft = (customParams.focus || defs.focus) * 60;
+                    totalDuration = timeLeft;
+                    totalRounds = 1;
+                    break;
+                case 'deepwork':
+                    timeLeft = defs.focus * 60;
+                    totalDuration = timeLeft;
+                    totalRounds = 1;
+                    break;
+                case 'countdown':
+                    timeLeft = (customParams.duration || defs.focus) * 60;
+                    totalDuration = timeLeft;
+                    totalRounds = 1;
+                    break;
+                case 'stopwatch':
+                    timeLeft = 0;
+                    totalDuration = Infinity;
+                    totalRounds = 1;
+                    break;
+                case 'interval':
+                    timeLeft = defs.focus * 60;
+                    totalDuration = timeLeft;
+                    totalRounds = defs.rounds;
+                    break;
+                case 'exam':
+                    timeLeft = (customParams.time || defs.time) * 60;
+                    totalDuration = timeLeft;
+                    totalRounds = 1;
+                    break;
+                case 'reading':
+                    timeLeft = (customParams.time || defs.time) * 60;
+                    totalDuration = timeLeft;
+                    totalRounds = 1;
+                    break;
+                case 'coding':
+                    timeLeft = (customParams.duration || defs.focus) * 60;
+                    totalDuration = timeLeft;
+                    totalRounds = 1;
+                    break;
+                case 'workout':
+                    timeLeft = (customParams.exercise || defs.exercise);
+                    totalDuration = timeLeft;
+                    totalRounds = customParams.rounds || defs.rounds;
+                    break;
+                case 'breathing':
+                    // setup breathing phases
+                    const inhale = customParams.inhale || defs.inhale;
+                    const hold = customParams.hold !== undefined ? customParams.hold : defs.hold;
+                    const exhale = customParams.exhale || defs.exhale;
+                    const hold2 = customParams.hold2 !== undefined ? customParams.hold2 : defs.hold2;
+                    const cycles = customParams.cycles || defs.cycles;
+                    breathingPhases = [];
+                    breathingPhases.push({ name: 'Inhale', duration: parseInt(inhale) });
+                    if (parseInt(hold) > 0) breathingPhases.push({ name: 'Hold', duration: parseInt(hold) });
+                    breathingPhases.push({ name: 'Exhale', duration: parseInt(exhale) });
+                    if (parseInt(hold2) > 0) breathingPhases.push({ name: 'Hold', duration: parseInt(hold2) });
+                    breathingPhaseIdx = 0;
+                    breathingCycle = 0;
+                    breathingMaxCycles = parseInt(cycles);
+                    timeLeft = breathingPhases[0].duration;
+                    totalDuration = timeLeft;
+                    totalRounds = breathingMaxCycles;
+                    break;
+                case 'prayer':
+                    timeLeft = defs.focus * 60;
+                    totalDuration = timeLeft;
+                    totalRounds = 1;
+                    break;
+                case 'custom':
+                    timeLeft = (customParams.focus || defs.focus) * 60;
+                    totalDuration = timeLeft;
+                    totalRounds = customParams.rounds || defs.rounds;
+                    break;
+                default: timeLeft = 1500; totalDuration = 1500; totalRounds = 1;
+            }
+            isRunning = false;
+            updateDisplay();
+            updateProgress(1);
+            document.title = 'Fikr Timer';
         }
 
         function toggleTimer() {
-            if (running) { stopTimer(); renderView('timer'); return; }
-            running = true;
-            renderView('timer');
-            timer = setInterval(() => {
-                if (currentMode?.type === 'stopwatch') {
-                    timeLeft++;
-                } else {
-                    if (timeLeft <= 0) { endSession(); return; }
-                    timeLeft--;
-                }
-                document.getElementById('timerTime').textContent = formatTime(timeLeft);
-                updateProgress();
-            }, 1000);
+            if (!currentMode) return;
+            if (isRunning) {
+                stopTimer();
+                return;
+            }
+            isRunning = true;
+            document.getElementById('btnStart').textContent = '⏸';
+            timerInterval = setInterval(tick, 1000);
         }
 
-        function stopTimer() { clearInterval(timer); running = false; }
-        function resetTimer() { startMode(currentMode.id); renderView('timer'); }
-
-        function endSession() {
-            stopTimer();
-            const history = JSON.parse(localStorage.getItem('fikr_history') || '[]');
-            history.push({ mode: currentMode.name, duration: Math.round((totalDuration - timeLeft)/60), date: new Date().toISOString() });
-            localStorage.setItem('fikr_history', JSON.stringify(history));
-            alert('Session completed!');
-            renderView('timer');
+        function stopTimer() {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            isRunning = false;
+            if (document.getElementById('btnStart')) document.getElementById('btnStart').textContent = '▶';
         }
 
-        function updateProgress() {
+        function tick() {
+            if (!isRunning) return;
+            if (currentMode.id === 'stopwatch') {
+                timeLeft++;
+                updateDisplay();
+                updateProgress(0);
+                return;
+            }
+            if (timeLeft <= 0) {
+                handleTimerEnd();
+                return;
+            }
+            timeLeft--;
+            updateDisplay();
+            updateProgress(timeLeft / totalDuration);
+            document.title = `${formatTime(timeLeft)} - Fikr`;
+        }
+
+        function updateDisplay() {
+            const el = document.getElementById('timerTime');
+            if (el) el.textContent = formatTime(timeLeft);
+            const label = document.getElementById('timerLabel');
+            if (label) label.textContent = getTimerLabel();
+            const roundInfo = document.getElementById('roundInfo');
+            if (roundInfo) roundInfo.textContent = getRoundInfo();
+        }
+
+        function updateProgress(ratio) {
             const circle = document.getElementById('progressCircle');
             if (!circle) return;
-            const ratio = currentMode?.type === 'stopwatch' ? 0 : (totalDuration > 0 ? timeLeft / totalDuration : 0);
-            circle.style.strokeDashoffset = 565.5 * (1 - ratio);
+            const circumference = 565.5;
+            circle.style.strokeDashoffset = circumference * (1 - Math.min(1, Math.max(0, ratio)));
         }
 
-        function formatTime(sec) {
-            const m = Math.floor(sec / 60), s = sec % 60;
-            return `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+        function handleTimerEnd() {
+            if (currentMode.id === 'breathing') {
+                breathingPhaseIdx++;
+                if (breathingPhaseIdx >= breathingPhases.length) {
+                    breathingPhaseIdx = 0;
+                    breathingCycle++;
+                    if (breathingCycle >= breathingMaxCycles) {
+                        endSession(true);
+                        return;
+                    }
+                }
+                const nextPhase = breathingPhases[breathingPhaseIdx];
+                timeLeft = nextPhase.duration;
+                totalDuration = timeLeft;
+                updateDisplay();
+                updateProgress(1);
+                playSound('tick');
+                return;
+            }
+
+            if (!isBreak && totalRounds > 1 && currentRound < totalRounds && getBreakDuration() > 0) {
+                // start break
+                isBreak = true;
+                currentRound++;
+                timeLeft = getBreakDuration();
+                totalDuration = timeLeft;
+                updateDisplay();
+                updateProgress(1);
+                playSound('tick');
+            } else {
+                endSession(true);
+            }
         }
 
-        // Theme toggle
+        function getBreakDuration() {
+            if (!currentMode) return 300;
+            const d = currentMode.defaults;
+            if (currentMode.id === 'pomodoro') {
+                return (currentRound % 4 === 0 ? d.longBreak : d.break) * 60;
+            }
+            if (currentMode.id === 'interval') return d.break * 60;
+            if (currentMode.id === 'workout') return d.rest;
+            return d.break ? d.break * 60 : 0;
+        }
+
+        function skipBreak() {
+            if (!isBreak || !currentMode) return;
+            isBreak = false;
+            const focus = currentMode.id === 'workout' ? currentMode.defaults.exercise : currentMode.defaults.focus * 60;
+            timeLeft = focus;
+            totalDuration = focus;
+            updateDisplay();
+            updateProgress(1);
+        }
+
+        function addFiveMinutes() {
+            if (!currentMode || currentMode.id === 'stopwatch' || currentMode.id === 'breathing') return;
+            timeLeft += 300;
+            totalDuration += 300;
+            updateDisplay();
+            updateProgress(timeLeft / totalDuration);
+        }
+
+        function resetTimer() {
+            startMode(currentMode.id);
+            updateDisplay();
+            updateProgress(1);
+            if (isRunning) {
+                stopTimer();
+            }
+        }
+
+        function endSession(completed = true) {
+            stopTimer();
+            if (completed && currentMode) {
+                const durMin = Math.round((totalDuration - timeLeft) / 60);
+                const session = {
+                    mode: currentMode.name,
+                    duration: durMin,
+                    date: new Date().toISOString(),
+                    score: sessionData.score || 100
+                };
+                saveHistory(session);
+                // Show summary
+                document.getElementById('summaryDetails').innerHTML = `
+                    <p><strong>${session.mode}</strong></p>
+                    <p>Duration: ${durMin} minutes</p>
+                    <p>Focus Score: ${session.score}%</p>`;
+                document.getElementById('summaryModal').classList.add('active');
+            }
+            if (currentMode) {
+                timeLeft = 0;
+                totalDuration = 0;
+                updateDisplay();
+                updateProgress(1);
+            }
+            document.title = 'Fikr Timer';
+        }
+
+        document.getElementById('closeSummary').addEventListener('click', () => {
+            document.getElementById('summaryModal').classList.remove('active');
+        });
+
+        // ===================== ANALYTICS VIEW =====================
+        function renderAnalytics() {
+            const history = JSON.parse(localStorage.getItem('fikr_history') || '[]');
+            const todayStr = new Date().toDateString();
+            const todaySessions = history.filter(s => new Date(s.date).toDateString() === todayStr);
+            const todayMin = todaySessions.reduce((sum, s) => sum + (s.duration || 0), 0);
+            const streak = calcStreak(history);
+
+            main.innerHTML = `
+                <div class="view active">
+                    <h2>Analytics</h2>
+                    <div style="display:flex; gap:20px; margin:20px 0;">
+                        <div style="flex:1; background:var(--surface); padding:16px; border-radius:16px;">
+                            <div style="font-size:1.8rem;">${todayMin}m</div>
+                            <small>Today Focus</small>
+                        </div>
+                        <div style="flex:1; background:var(--surface); padding:16px; border-radius:16px;">
+                            <div style="font-size:1.8rem;">${todaySessions.length}</div>
+                            <small>Sessions</small>
+                        </div>
+                        <div style="flex:1; background:var(--surface); padding:16px; border-radius:16px;">
+                            <div style="font-size:1.8rem;">${streak}🔥</div>
+                            <small>Streak</small>
+                        </div>
+                    </div>
+                    <h3>Recent Sessions</h3>
+                    <div id="historyList">
+                        ${history.slice(0,10).map(s => `
+                            <div class="history-item">
+                                <span>${s.mode}</span>
+                                <span>${s.duration}m</span>
+                                <small>${new Date(s.date).toLocaleDateString()}</small>
+                            </div>`).join('') || '<p>No sessions yet.</p>'}
+                    </div>
+                    <button class="btn" id="clearHistory" style="margin-top:10px;">Clear History</button>
+                </div>`;
+            document.getElementById('clearHistory').addEventListener('click', () => {
+                if (confirm('Clear all history?')) {
+                    localStorage.removeItem('fikr_history');
+                    renderView();
+                }
+            });
+        }
+
+        function calcStreak(history) {
+            const dates = [...new Set(history.map(s => new Date(s.date).toDateString()))].sort().reverse();
+            let streak = 0;
+            const today = new Date().toDateString();
+            if (dates.length === 0) return 0;
+            if (dates[0] !== today && dates[0] !== new Date(Date.now() - 86400000).toDateString()) return 0;
+            for (let i = 0; i < dates.length; i++) {
+                const d = new Date(dates[i]);
+                const expected = new Date(Date.now() - i * 86400000);
+                if (d.toDateString() === expected.toDateString()) streak++;
+                else break;
+            }
+            return streak;
+        }
+
+        // ===================== KEYBOARD SHORTCUTS =====================
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            if (e.code === 'Space') { e.preventDefault(); toggleTimer(); }
+            if (e.code === 'KeyR') resetTimer();
+            if (e.code === 'Equal' && e.shiftKey) addFiveMinutes();
+        });
+
+        // ===================== THEME TOGGLE =====================
         document.getElementById('themeBtn').addEventListener('click', () => {
             const html = document.documentElement;
             html.setAttribute('data-theme', html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
         });
 
-        // Start app
-        renderView('home');
+        // ===================== INIT =====================
+        renderView();
     </script>
 </body>
 </html>
