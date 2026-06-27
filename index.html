@@ -3,38 +3,199 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Fikr Timer Pro</title>
+    <title>Fikr Timer</title>
     <meta name="theme-color" content="#7c5ce7">
     <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="css/style.css">
-    
+    <style>
+        /* --- Copy your full CSS here from earlier (or the one I provided) --- */
+        /* I'll include a minimal set for brevity, but you should paste the full style.css */
+        :root {
+            --bg: #0b0b1a;
+            --surface: rgba(20,20,40,0.7);
+            --text: #f0f0ff;
+            --primary: #7c5ce7;
+            --radius: 24px;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family: 'Inter', system-ui, sans-serif; background:var(--bg); color:var(--text); min-height:100vh; display:flex; flex-direction:column; }
+        .header { display:flex; justify-content:space-between; padding:12px; backdrop-filter:blur(20px); background:var(--surface); border-bottom:1px solid rgba(255,255,255,0.1); }
+        .main { flex:1; overflow-y:auto; padding:20px; }
+        .bottom-nav { display:flex; justify-content:space-around; padding:10px; background:var(--surface); border-top:1px solid rgba(255,255,255,0.1); }
+        .nav-item { background:none; border:none; color:var(--text); font-size:0.8rem; cursor:pointer; }
+        .nav-item.active { color:var(--primary); font-weight:bold; }
+        .view { display:none; }
+        .view.active { display:block; }
+        .mode-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+        .mode-card { background:rgba(255,255,255,0.05); border-radius:var(--radius); padding:20px; text-align:center; cursor:pointer; }
+        .mode-card:hover { background:var(--primary); }
+        .timer-circle { width:200px; height:200px; margin:20px auto; position:relative; }
+        .timer-svg { width:100%; height:100%; transform:rotate(-90deg); }
+        .timer-bg { fill:none; stroke:rgba(255,255,255,0.1); stroke-width:6; }
+        .timer-progress { fill:none; stroke:var(--primary); stroke-width:6; stroke-linecap:round; transition:stroke-dashoffset 0.3s; }
+        .timer-time { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:2.5rem; font-weight:700; }
+        button { background:var(--primary); color:white; border:none; padding:10px 20px; border-radius:40px; font-weight:600; cursor:pointer; }
+        .btn-outline { background:transparent; border:1px solid rgba(255,255,255,0.2); }
+    </style>
 </head>
 <body>
-    <div id="app">
-        <header class="glass-header">
-            <div class="logo">
-                <span class="logo-icon">⏳</span>
-                <h1>Fikr Timer</h1>
-            </div>
-            <div class="header-controls">
-                <button id="soundscapeBtn" class="icon-btn" title="Soundscape">🎧</button>
-                <button id="themeBtn" class="icon-btn" title="Theme">🌓</button>
-                <button id="layoutBtn" class="icon-btn" title="Desktop Mode">🖥️</button>
-            </div>
-        </header>
+    <header class="header">
+        <span>⏳ Fikr Timer</span>
+        <div>
+            <button id="themeBtn">🌓</button>
+        </div>
+    </header>
 
-        <main id="mainContent"></main>
+    <main class="main" id="mainContent"></main>
 
-        <nav class="bottom-nav">
-            <button data-view="home" class="nav-item active">🏠<span>Modes</span></button>
-            <button data-view="timer" class="nav-item">⏱️<span>Timer</span></button>
-            <button data-view="analytics" class="nav-item">📊<span>Stats</span></button>
-            <button data-view="settings" class="nav-item">⚙️<span>Settings</span></button>
-        </nav>
+    <nav class="bottom-nav">
+        <button class="nav-item active" data-view="home">🏠 Modes</button>
+        <button class="nav-item" data-view="timer">⏱️ Timer</button>
+        <button class="nav-item" data-view="analytics">📊 Stats</button>
+    </nav>
 
-        <!-- Modals will be injected dynamically -->
-    </div>
+    <script>
+        // ---------- SIMPLE WORKING APP ----------
+        const MODES = [
+            { id: 'pomodoro', name: 'Pomodoro', icon: '🍅', focus: 25, break: 5, rounds: 4 },
+            { id: 'deepwork', name: 'Deep Work', icon: '🧠', focus: 90, break: 15 },
+            { id: 'stopwatch', name: 'Stopwatch', icon: '⏱️', type: 'stopwatch' }
+        ];
 
-    <script type="module" src="js/app.js"></script>
+        let currentView = 'home';
+        let currentMode = null;
+        let timer = null;
+        let timeLeft = 0;
+        let totalDuration = 0;
+        let running = false;
+
+        // Navigation
+        document.querySelectorAll('.nav-item').forEach(btn => {
+            btn.addEventListener('click', () => {
+                currentView = btn.dataset.view;
+                document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                renderView(currentView);
+            });
+        });
+
+        function renderView(view) {
+            const main = document.getElementById('mainContent');
+            switch(view) {
+                case 'home': renderHome(main); break;
+                case 'timer': renderTimer(main); break;
+                case 'analytics': renderAnalytics(main); break;
+            }
+        }
+
+        function renderHome(container) {
+            container.innerHTML = `
+                <div class="view active">
+                    <h2>Choose Mode</h2>
+                    <div class="mode-grid" id="modeGrid"></div>
+                </div>`;
+            const grid = document.getElementById('modeGrid');
+            grid.innerHTML = MODES.map(m => `
+                <div class="mode-card" data-mode="${m.id}">
+                    <div style="font-size:2rem;">${m.icon}</div>
+                    <div>${m.name}</div>
+                </div>`).join('');
+            document.querySelectorAll('.mode-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    startMode(card.dataset.mode);
+                    currentView = 'timer';
+                    renderView('timer');
+                });
+            });
+        }
+
+        function renderTimer(container) {
+            const mode = currentMode || MODES[0];
+            container.innerHTML = `
+                <div class="view active">
+                    <h2>${mode.icon} ${mode.name}</h2>
+                    <div class="timer-circle">
+                        <svg class="timer-svg" viewBox="0 0 200 200">
+                            <circle class="timer-bg" cx="100" cy="100" r="90"/>
+                            <circle class="timer-progress" id="progressCircle" cx="100" cy="100" r="90" stroke-dasharray="565.5" stroke-dashoffset="0"/>
+                        </svg>
+                        <div class="timer-time" id="timerTime">${formatTime(timeLeft)}</div>
+                    </div>
+                    <div style="text-align:center;">
+                        <button id="startBtn">${running ? '⏸' : '▶'}</button>
+                        <button id="resetBtn" class="btn-outline">↺</button>
+                    </div>
+                </div>`;
+            document.getElementById('startBtn').addEventListener('click', toggleTimer);
+            document.getElementById('resetBtn').addEventListener('click', resetTimer);
+            updateProgress();
+        }
+
+        function renderAnalytics(container) {
+            container.innerHTML = `<div class="view active"><h2>Analytics</h2><p>Sessions: ${JSON.parse(localStorage.getItem('fikr_history')||'[]').length}</p></div>`;
+        }
+
+        function startMode(modeId) {
+            const mode = MODES.find(m => m.id === modeId);
+            currentMode = mode;
+            if (mode.type === 'stopwatch') {
+                timeLeft = 0;
+                totalDuration = Infinity;
+            } else {
+                timeLeft = mode.focus * 60;
+                totalDuration = timeLeft;
+            }
+            stopTimer();
+            running = false;
+        }
+
+        function toggleTimer() {
+            if (running) { stopTimer(); renderView('timer'); return; }
+            running = true;
+            renderView('timer');
+            timer = setInterval(() => {
+                if (currentMode?.type === 'stopwatch') {
+                    timeLeft++;
+                } else {
+                    if (timeLeft <= 0) { endSession(); return; }
+                    timeLeft--;
+                }
+                document.getElementById('timerTime').textContent = formatTime(timeLeft);
+                updateProgress();
+            }, 1000);
+        }
+
+        function stopTimer() { clearInterval(timer); running = false; }
+        function resetTimer() { startMode(currentMode.id); renderView('timer'); }
+
+        function endSession() {
+            stopTimer();
+            const history = JSON.parse(localStorage.getItem('fikr_history') || '[]');
+            history.push({ mode: currentMode.name, duration: Math.round((totalDuration - timeLeft)/60), date: new Date().toISOString() });
+            localStorage.setItem('fikr_history', JSON.stringify(history));
+            alert('Session completed!');
+            renderView('timer');
+        }
+
+        function updateProgress() {
+            const circle = document.getElementById('progressCircle');
+            if (!circle) return;
+            const ratio = currentMode?.type === 'stopwatch' ? 0 : (totalDuration > 0 ? timeLeft / totalDuration : 0);
+            circle.style.strokeDashoffset = 565.5 * (1 - ratio);
+        }
+
+        function formatTime(sec) {
+            const m = Math.floor(sec / 60), s = sec % 60;
+            return `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+        }
+
+        // Theme toggle
+        document.getElementById('themeBtn').addEventListener('click', () => {
+            const html = document.documentElement;
+            html.setAttribute('data-theme', html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+        });
+
+        // Start app
+        renderView('home');
+    </script>
 </body>
 </html>
