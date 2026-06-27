@@ -2,18 +2,17 @@ const CACHE_NAME = 'fikr-pro-v1';
 const ASSETS = [
     './',
     './index.html',
-    './style.css',
-    './config.js',
-    './app.js',
-    './timer.js',
-    './breathing.js',
-    './analytics.js',
-    './storage.js',
+    './css/style.css',
+    './js/config.js',
+    './js/app.js',
+    './js/timer.js',
+    './js/breathing.js',
+    './js/analytics.js',
+    './js/storage.js',
     './manifest.json',
-    './icon-192.png',
-    './icon-512.png'
+    './icons/icon-192.png',
+    './icons/icon-512.png'
 ];
-
 self.addEventListener('install', e => {
     e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)));
 });
