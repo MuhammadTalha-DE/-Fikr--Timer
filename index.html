@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Fikr Timer</title>
+    <title>Fikr Timer — Ultimate</title>
     <meta name="theme-color" content="#7c5ce7">
     <link rel="manifest" href="manifest.json">
     <style>
@@ -39,6 +39,7 @@
             min-height: 100vh; display: flex; flex-direction: column;
             transition: background 0.3s, color 0.3s;
             user-select: none; -webkit-tap-highlight-color: transparent;
+            overflow-x: hidden;
         }
         .header {
             background: var(--surface); backdrop-filter: blur(20px);
@@ -81,31 +82,46 @@
             border: 1px solid var(--border); border-radius: var(--radius);
             padding: 20px; text-align: center; cursor: pointer;
             transition: all var(--transition);
+            transform-style: preserve-3d;
         }
         .mode-card:hover {
-            transform: translateY(-3px); border-color: var(--primary);
+            transform: translateY(-3px) rotateY(5deg);
+            border-color: var(--primary);
             box-shadow: var(--primary-glow);
         }
         .mode-icon { font-size: 2.5rem; margin-bottom: 8px; }
         .mode-name { font-weight: 600; }
         .timer-circle {
-            position: relative; width: 240px; height: 240px;
-            margin: 20px auto;
+            position: relative; width: 260px; height: 260px; margin: 20px auto;
         }
+        .timer-circle.breathing-inhale { transform: scale(1.08); transition: transform 0.6s ease; }
+        .timer-circle.breathing-exhale { transform: scale(0.95); transition: transform 0.6s ease; }
+        .timer-circle.breathing-hold { transform: scale(1); transition: transform 0.6s ease; }
         .timer-svg { width: 100%; height: 100%; transform: rotate(-90deg); }
         .timer-bg { fill: none; stroke: var(--border); stroke-width: 6; }
         .timer-progress {
             fill: none; stroke: var(--primary); stroke-width: 6;
             stroke-linecap: round; transition: stroke-dashoffset 0.3s linear;
         }
+        .breathing-ring {
+            fill: none; stroke: var(--primary); stroke-width: 2;
+            opacity: 0; transition: r 0.6s ease, opacity 0.3s;
+        }
         .timer-time {
             position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -50%); font-size: 3rem; font-weight: 700;
+            z-index: 1;
         }
         .timer-label {
-            position: absolute; top: 58%; left: 50%;
+            position: absolute; top: 62%; left: 50%;
             transform: translate(-50%, 0); color: var(--text-secondary);
-            font-size: 0.9rem;
+            font-size: 0.9rem; z-index: 1;
+        }
+        .breathing-phase-text {
+            position: absolute; top: 40%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.6rem; font-weight: 300; letter-spacing: 3px;
+            color: var(--primary); z-index: 1; display: none;
         }
         .controls {
             display: flex; justify-content: center; align-items: center; gap: 20px;
@@ -127,6 +143,31 @@
         }
         .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
         .btn-outline:hover { background: var(--surface2); }
+        .breathing-panel {
+            background: var(--surface); border-radius: var(--radius);
+            padding: 16px; margin-top: 20px; display: none;
+            border: 1px solid var(--border);
+        }
+        .breathing-panel.active { display: grid; }
+        .control-row {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .control-label { font-weight: 500; width: 70px; }
+        .nudge-btn {
+            background: var(--surface2); border: 1px solid var(--border);
+            border-radius: 20px; width: 32px; height: 32px; font-size: 1.2rem;
+            color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+        .nudge-value { font-weight: 600; width: 30px; text-align: center; }
+        .presets { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+        .preset-btn { background: var(--surface2); border: 1px solid var(--border); padding: 6px 14px; border-radius: 20px; cursor: pointer; color: var(--text); font-size: 0.85rem; }
+        .preset-btn:hover { background: var(--primary); color: white; }
+        canvas#particleCanvas {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 0; border-radius: 50%;
+        }
+        .soundscape-btn { margin: 10px; }
         .modal {
             position: fixed; inset: 0; background: rgba(0,0,0,0.6);
             backdrop-filter: blur(4px); display: flex; align-items: center;
@@ -135,20 +176,11 @@
         .modal.active { display: flex; }
         .modal-content {
             background: var(--surface2); border-radius: var(--radius);
-            padding: 24px; max-width: 90vw; width: 350px;
-            text-align: center;
+            padding: 24px; max-width: 90vw; width: 350px; text-align: center;
         }
-        .form-group { margin-bottom: 12px; }
-        .form-group label { display: block; margin-bottom: 4px; }
-        .form-group input {
-            width: 100%; padding: 10px; border-radius: 12px;
-            border: 1px solid var(--border); background: var(--bg);
-            color: var(--text);
-        }
-        .history-item {
-            display: flex; justify-content: space-between;
-            padding: 8px; border-bottom: 1px solid var(--border);
-        }
+        .history-item { display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid var(--border); }
+        .heatmap { display: flex; gap: 4px; flex-wrap: wrap; }
+        .heat-cell { width: 12px; height: 12px; border-radius: 2px; }
         @media (max-width: 480px) {
             .mode-grid { grid-template-columns: repeat(3, 1fr); }
         }
@@ -157,7 +189,10 @@
 <body>
     <header class="header">
         <h1>⏳ Fikr Timer</h1>
-        <button id="themeBtn" class="icon-btn">🌓</button>
+        <div>
+            <button id="soundscapeBtn" class="icon-btn" title="Ambient Sound">🎧</button>
+            <button id="themeBtn" class="icon-btn">🌓</button>
+        </div>
     </header>
 
     <main class="main" id="mainContent"></main>
@@ -168,7 +203,6 @@
         <button class="nav-item" data-view="analytics">📊 Stats</button>
     </nav>
 
-    <!-- Session Summary Modal -->
     <div class="modal" id="summaryModal">
         <div class="modal-content">
             <h2>🎉 Session Complete</h2>
@@ -198,38 +232,33 @@
         // ===================== STATE =====================
         let currentMode = null;
         let timerInterval = null;
-        let timeLeft = 0;
-        let totalDuration = 0;
-        let isRunning = false;
-        let isBreak = false;
-        let currentRound = 1;
-        let totalRounds = 1;
+        let timeLeft = 0, totalDuration = 0, isRunning = false;
+        let isBreak = false, currentRound = 1, totalRounds = 1;
         let sessionData = { mode: '', startTime: null, distractions: 0, score: 0 };
         let soundEnabled = true;
-        // Breathing state
-        let breathingPhases = [];
-        let breathingPhaseIdx = 0;
-        let breathingCycle = 0;
-        let breathingMaxCycles = 0;
+        let breathingParams = { inhale: 4, hold: 4, exhale: 4, hold2: 4, cycles: 5 };
+        let breathingPhases = [], breathingPhaseIdx = 0, breathingCycle = 0, breathingMaxCycles = 0;
+        let particleCanvas, ctx, particles = [], animFrame;
+        // Soundscape
+        let ambientAudio = null;
+        let ambientType = 'none';
 
         // ===================== UTILS =====================
         function formatTime(sec) {
-            const m = Math.floor(sec / 60);
-            const s = sec % 60;
-            return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            const m = Math.floor(sec / 60), s = sec % 60;
+            return `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
         }
         function playSound(type = 'complete') {
             if (!soundEnabled) return;
             try {
                 const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
+                const osc = ctx.createOscillator(), gain = ctx.createGain();
                 osc.connect(gain); gain.connect(ctx.destination);
                 osc.frequency.value = type === 'complete' ? 880 : 660;
                 gain.gain.setValueAtTime(0.3, ctx.currentTime);
                 gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
                 osc.start(); osc.stop(ctx.currentTime + 0.3);
-            } catch(e) { console.warn('Audio error:', e); }
+            } catch(e) {}
         }
         function saveHistory(session) {
             let history = JSON.parse(localStorage.getItem('fikr_history') || '[]');
@@ -285,28 +314,78 @@
         function renderTimer() {
             const mode = currentMode || MODES[0];
             main.innerHTML = `
-                <div class="view active">
+                <div class="view active timer-container">
                     <h2 style="text-align:center;">${mode.icon} ${mode.name}</h2>
                     <div style="text-align:center; color:var(--text-secondary);" id="roundInfo">${getRoundInfo()}</div>
-                    <div class="timer-circle">
+                    <div class="timer-circle" id="timerCircle">
+                        <canvas id="particleCanvas"></canvas>
                         <svg class="timer-svg" viewBox="0 0 200 200">
                             <circle class="timer-bg" cx="100" cy="100" r="90"/>
                             <circle class="timer-progress" id="progressCircle" cx="100" cy="100" r="90" stroke-dasharray="565.5" stroke-dashoffset="0"/>
+                            <circle class="breathing-ring" id="breathRing" cx="100" cy="100" r="40"/>
                         </svg>
                         <div class="timer-time" id="timerTime">${formatTime(timeLeft)}</div>
                         <div class="timer-label" id="timerLabel">${getTimerLabel()}</div>
+                        <div class="breathing-phase-text" id="breathingPhaseText" style="display:${mode.id === 'breathing' ? 'block' : 'none'};">INHALE</div>
                     </div>
                     <div class="controls">
                         <button class="ctrl-btn" id="btnReset">↺</button>
-                        <button class="ctrl-btn start" id="btnStart">▶</button>
+                        <button class="ctrl-btn start" id="btnStart">${isRunning ? '⏸' : '▶'}</button>
                         <button class="ctrl-btn" id="btnAdd5">+5</button>
                     </div>
                     <div class="extra-controls">
                         <button class="btn btn-outline" id="btnSkip">Skip Break</button>
                         <button class="btn btn-outline" id="btnEnd">End Session</button>
+                        <button class="btn btn-outline soundscape-btn" id="btnSoundscape">🎧 Ambient</button>
+                    </div>
+                    <div class="breathing-panel ${mode.id === 'breathing' ? 'active' : ''}" id="breathingPanel">
+                        <div class="control-row">
+                            <span class="control-label">Inhale</span>
+                            <button class="nudge-btn" data-phase="inhale" data-dir="-">−</button>
+                            <span class="nudge-value" id="inhaleVal">${breathingParams.inhale}</span>
+                            <button class="nudge-btn" data-phase="inhale" data-dir="+">+</button>
+                        </div>
+                        <div class="control-row">
+                            <span class="control-label">Hold</span>
+                            <button class="nudge-btn" data-phase="hold" data-dir="-">−</button>
+                            <span class="nudge-value" id="holdVal">${breathingParams.hold}</span>
+                            <button class="nudge-btn" data-phase="hold" data-dir="+">+</button>
+                        </div>
+                        <div class="control-row">
+                            <span class="control-label">Exhale</span>
+                            <button class="nudge-btn" data-phase="exhale" data-dir="-">−</button>
+                            <span class="nudge-value" id="exhaleVal">${breathingParams.exhale}</span>
+                            <button class="nudge-btn" data-phase="exhale" data-dir="+">+</button>
+                        </div>
+                        <div class="control-row">
+                            <span class="control-label">Hold</span>
+                            <button class="nudge-btn" data-phase="hold2" data-dir="-">−</button>
+                            <span class="nudge-value" id="hold2Val">${breathingParams.hold2}</span>
+                            <button class="nudge-btn" data-phase="hold2" data-dir="+">+</button>
+                        </div>
+                        <div class="control-row">
+                            <span class="control-label">Cycles</span>
+                            <button class="nudge-btn" data-phase="cycles" data-dir="-">−</button>
+                            <span class="nudge-value" id="cyclesVal">${breathingParams.cycles}</span>
+                            <button class="nudge-btn" data-phase="cycles" data-dir="+">+</button>
+                        </div>
+                        <div class="presets">
+                            <button class="preset-btn" data-preset="box">Box (4-4-4-4)</button>
+                            <button class="preset-btn" data-preset="478">4-7-8</button>
+                            <button class="preset-btn" data-preset="deep">Deep (5-5-5-5)</button>
+                        </div>
                     </div>
                     <button class="btn btn-outline" style="margin:20px auto; display:block;" id="btnBack">← Back to Modes</button>
                 </div>`;
+
+            // Particles setup
+            particleCanvas = document.getElementById('particleCanvas');
+            if (particleCanvas) {
+                particleCanvas.width = particleCanvas.parentElement.offsetWidth;
+                particleCanvas.height = particleCanvas.parentElement.offsetHeight;
+                ctx = particleCanvas.getContext('2d');
+                initParticles();
+            }
 
             // Event listeners
             document.getElementById('btnStart').addEventListener('click', toggleTimer);
@@ -316,34 +395,169 @@
             document.getElementById('btnEnd').addEventListener('click', endSession);
             document.getElementById('btnBack').addEventListener('click', () => {
                 stopTimer();
+                cancelAnimationFrame(animFrame);
+                stopAmbient();
                 currentView = 'home';
                 navItems.forEach(b => b.classList.remove('active'));
                 document.querySelector(`[data-view="home"]`).classList.add('active');
                 renderView();
             });
+            document.getElementById('btnSoundscape').addEventListener('click', toggleAmbientSound);
+
+            // Breathing controls
+            document.querySelectorAll('.nudge-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const phase = btn.dataset.phase;
+                    const dir = btn.dataset.dir === '+' ? 1 : -1;
+                    breathingParams[phase] = Math.max(1, breathingParams[phase] + dir);
+                    document.getElementById(`${phase}Val`).textContent = breathingParams[phase];
+                    if (currentMode && currentMode.id === 'breathing') {
+                        rebuildBreathingPhases();
+                        updateBreathingUI();
+                    }
+                });
+            });
+            document.querySelectorAll('.preset-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const preset = btn.dataset.preset;
+                    if (preset === 'box') breathingParams = { inhale:4, hold:4, exhale:4, hold2:4, cycles:5 };
+                    else if (preset === '478') breathingParams = { inhale:4, hold:7, exhale:8, hold2:0, cycles:5 };
+                    else if (preset === 'deep') breathingParams = { inhale:5, hold:5, exhale:5, hold2:5, cycles:5 };
+                    updateBreathingControlPanel();
+                    if (currentMode && currentMode.id === 'breathing') {
+                        rebuildBreathingPhases();
+                        updateBreathingUI();
+                    }
+                });
+            });
 
             updateProgress();
-            if (isRunning) {
-                document.getElementById('btnStart').textContent = '⏸';
-            }
+            if (currentMode && currentMode.id === 'breathing') updateBreathingUI();
         }
 
         function getTimerLabel() {
             if (!currentMode) return 'Focus';
             if (currentMode.id === 'stopwatch') return 'Stopwatch';
-            if (currentMode.id === 'breathing') return 'Breathing';
+            if (currentMode.id === 'breathing') return '';
             return isBreak ? 'Break' : 'Focus';
         }
-
         function getRoundInfo() {
             if (!currentMode) return '';
-            if (currentMode.id === 'breathing') {
-                return `Cycle ${breathingCycle+1}/${breathingMaxCycles}`;
-            }
-            if (totalRounds > 1) {
-                return `Round ${currentRound}/${totalRounds}`;
-            }
+            if (currentMode.id === 'breathing') return `Cycle ${breathingCycle+1}/${breathingMaxCycles}`;
+            if (totalRounds > 1) return `Round ${currentRound}/${totalRounds}`;
             return '';
+        }
+
+        // ===================== BREATHING HELPERS =====================
+        function rebuildBreathingPhases() {
+            breathingPhases = [];
+            breathingPhases.push({ name: 'Inhale', duration: breathingParams.inhale });
+            if (breathingParams.hold > 0) breathingPhases.push({ name: 'Hold', duration: breathingParams.hold });
+            breathingPhases.push({ name: 'Exhale', duration: breathingParams.exhale });
+            if (breathingParams.hold2 > 0) breathingPhases.push({ name: 'Hold', duration: breathingParams.hold2 });
+            breathingMaxCycles = breathingParams.cycles;
+        }
+        function updateBreathingControlPanel() {
+            const ids = ['inhale','hold','exhale','hold2','cycles'];
+            ids.forEach(id => {
+                const el = document.getElementById(`${id}Val`);
+                if (el) el.textContent = breathingParams[id];
+            });
+        }
+        function updateBreathingUI() {
+            if (!currentMode || currentMode.id !== 'breathing') return;
+            const phase = breathingPhases[breathingPhaseIdx];
+            const phaseText = document.getElementById('breathingPhaseText');
+            if (phaseText) phaseText.textContent = phase.name.toUpperCase();
+            const circle = document.getElementById('timerCircle');
+            circle.classList.remove('breathing-inhale','breathing-exhale','breathing-hold');
+            if (phase.name === 'Inhale') circle.classList.add('breathing-inhale');
+            else if (phase.name === 'Exhale') circle.classList.add('breathing-exhale');
+            else circle.classList.add('breathing-hold');
+            const ring = document.getElementById('breathRing');
+            if (ring) {
+                if (phase.name === 'Inhale') {
+                    ring.setAttribute('r', '85'); ring.style.opacity = '0.5';
+                } else if (phase.name === 'Exhale') {
+                    ring.setAttribute('r', '35'); ring.style.opacity = '0.2';
+                } else {
+                    ring.setAttribute('r', '50'); ring.style.opacity = '0.3';
+                }
+                ring.style.transition = `r ${phase.duration}s ease, opacity 0.3s`;
+            }
+            if (phase.name === 'Inhale') animateParticles('up');
+            else if (phase.name === 'Exhale') animateParticles('down');
+            else animateParticles('still');
+        }
+
+        // ===================== PARTICLES =====================
+        function initParticles() {
+            if (!particleCanvas) return;
+            const w = particleCanvas.width, h = particleCanvas.height;
+            particles = Array.from({length: 60}, () => ({
+                x: Math.random() * w, y: Math.random() * h,
+                r: Math.random() * 3 + 1,
+                vx: (Math.random() - 0.5) * 0.5, vy: 0, baseVx: (Math.random() - 0.5) * 0.5
+            }));
+            if (ctx) drawParticles();
+        }
+        function drawParticles() {
+            if (!ctx || !particleCanvas) return;
+            ctx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
+            particles.forEach(p => {
+                p.x += p.vx; p.y += p.vy;
+                if (p.x < 0 || p.x > particleCanvas.width) p.vx *= -1;
+                if (p.y < 0 || p.y > particleCanvas.height) p.vy *= -1;
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+                ctx.fillStyle = `rgba(124,92,231,${0.3 + Math.sin(Date.now()/500)*0.2})`;
+                ctx.fill();
+            });
+            animFrame = requestAnimationFrame(drawParticles);
+        }
+        function animateParticles(dir) {
+            particles.forEach(p => {
+                if (dir === 'up') {
+                    p.vy = -Math.random() * 2 - 1;
+                    p.vx = p.baseVx;
+                } else if (dir === 'down') {
+                    p.vy = Math.random() * 2 + 1;
+                    p.vx = p.baseVx;
+                } else {
+                    p.vy *= 0.95; p.vx *= 0.95;
+                }
+            });
+        }
+
+        // ===================== AMBIENT SOUNDSCAPES =====================
+        function toggleAmbientSound() {
+            if (ambientAudio) {
+                stopAmbient();
+                document.getElementById('btnSoundscape').textContent = '🎧 Ambient';
+                return;
+            }
+            // Simple ambient noise (white noise) using Web Audio API
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const bufferSize = 4096;
+            const noise = ctx.createScriptProcessor(bufferSize, 1, 1);
+            noise.onaudioprocess = (e) => {
+                const out = e.outputBuffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    out[i] = Math.random() * 0.1; // white noise
+                }
+            };
+            const gain = ctx.createGain();
+            gain.gain.value = 0.08;
+            noise.connect(gain);
+            gain.connect(ctx.destination);
+            ambientAudio = { ctx, noise, gain };
+            document.getElementById('btnSoundscape').textContent = '🎧 Stop Ambient';
+        }
+        function stopAmbient() {
+            if (ambientAudio) {
+                ambientAudio.noise.disconnect();
+                ambientAudio.gain.disconnect();
+                ambientAudio = null;
+            }
         }
 
         // ===================== TIMER ENGINE =====================
@@ -352,92 +566,42 @@
             if (!mode) return;
             currentMode = mode;
             stopTimer();
+            cancelAnimationFrame(animFrame);
             isBreak = false;
             currentRound = 1;
             sessionData = { mode: mode.name, startTime: Date.now(), distractions: 0, score: 0 };
-
             const defs = mode.defaults;
-            switch (modeId) {
-                case 'pomodoro':
-                    timeLeft = defs.focus * 60;
-                    totalDuration = timeLeft;
-                    totalRounds = defs.rounds;
-                    break;
-                case 'study':
-                    timeLeft = (customParams.focus || defs.focus) * 60;
-                    totalDuration = timeLeft;
-                    totalRounds = 1;
-                    break;
-                case 'deepwork':
-                    timeLeft = defs.focus * 60;
-                    totalDuration = timeLeft;
-                    totalRounds = 1;
-                    break;
-                case 'countdown':
-                    timeLeft = (customParams.duration || defs.focus) * 60;
-                    totalDuration = timeLeft;
-                    totalRounds = 1;
-                    break;
-                case 'stopwatch':
-                    timeLeft = 0;
-                    totalDuration = Infinity;
-                    totalRounds = 1;
-                    break;
-                case 'interval':
-                    timeLeft = defs.focus * 60;
-                    totalDuration = timeLeft;
-                    totalRounds = defs.rounds;
-                    break;
-                case 'exam':
-                    timeLeft = (customParams.time || defs.time) * 60;
-                    totalDuration = timeLeft;
-                    totalRounds = 1;
-                    break;
-                case 'reading':
-                    timeLeft = (customParams.time || defs.time) * 60;
-                    totalDuration = timeLeft;
-                    totalRounds = 1;
-                    break;
-                case 'coding':
-                    timeLeft = (customParams.duration || defs.focus) * 60;
-                    totalDuration = timeLeft;
-                    totalRounds = 1;
-                    break;
-                case 'workout':
-                    timeLeft = (customParams.exercise || defs.exercise);
-                    totalDuration = timeLeft;
-                    totalRounds = customParams.rounds || defs.rounds;
-                    break;
-                case 'breathing':
-                    // setup breathing phases
-                    const inhale = customParams.inhale || defs.inhale;
-                    const hold = customParams.hold !== undefined ? customParams.hold : defs.hold;
-                    const exhale = customParams.exhale || defs.exhale;
-                    const hold2 = customParams.hold2 !== undefined ? customParams.hold2 : defs.hold2;
-                    const cycles = customParams.cycles || defs.cycles;
-                    breathingPhases = [];
-                    breathingPhases.push({ name: 'Inhale', duration: parseInt(inhale) });
-                    if (parseInt(hold) > 0) breathingPhases.push({ name: 'Hold', duration: parseInt(hold) });
-                    breathingPhases.push({ name: 'Exhale', duration: parseInt(exhale) });
-                    if (parseInt(hold2) > 0) breathingPhases.push({ name: 'Hold', duration: parseInt(hold2) });
-                    breathingPhaseIdx = 0;
-                    breathingCycle = 0;
-                    breathingMaxCycles = parseInt(cycles);
-                    timeLeft = breathingPhases[0].duration;
-                    totalDuration = timeLeft;
-                    totalRounds = breathingMaxCycles;
-                    break;
-                case 'prayer':
-                    timeLeft = defs.focus * 60;
-                    totalDuration = timeLeft;
-                    totalRounds = 1;
-                    break;
-                case 'custom':
-                    timeLeft = (customParams.focus || defs.focus) * 60;
-                    totalDuration = timeLeft;
-                    totalRounds = customParams.rounds || defs.rounds;
-                    break;
-                default: timeLeft = 1500; totalDuration = 1500; totalRounds = 1;
+            if (modeId === 'breathing') {
+                breathingParams = {
+                    inhale: parseInt(customParams.inhale || defs.inhale),
+                    hold: parseInt(customParams.hold ?? defs.hold),
+                    exhale: parseInt(customParams.exhale || defs.exhale),
+                    hold2: parseInt(customParams.hold2 ?? defs.hold2),
+                    cycles: parseInt(customParams.cycles || defs.cycles)
+                };
+                rebuildBreathingPhases();
+                breathingPhaseIdx = 0;
+                breathingCycle = 0;
+                timeLeft = breathingPhases[0].duration;
+                totalDuration = timeLeft;
+                totalRounds = breathingMaxCycles;
+            } else {
+                switch (modeId) {
+                    case 'pomodoro': timeLeft = defs.focus * 60; totalRounds = defs.rounds; break;
+                    case 'study': timeLeft = (customParams.focus || defs.focus) * 60; totalRounds = 1; break;
+                    case 'deepwork': timeLeft = defs.focus * 60; totalRounds = 1; break;
+                    case 'countdown': timeLeft = (customParams.duration || defs.focus) * 60; totalRounds = 1; break;
+                    case 'stopwatch': timeLeft = 0; totalRounds = 1; break;
+                    case 'interval': timeLeft = defs.focus * 60; totalRounds = defs.rounds; break;
+                    case 'exam': timeLeft = (customParams.time || defs.time) * 60; totalRounds = 1; break;
+                    case 'reading': timeLeft = (customParams.time || defs.time) * 60; totalRounds = 1; break;
+                    case 'coding': timeLeft = (customParams.duration || defs.focus) * 60; totalRounds = 1; break;
+                    case 'workout': timeLeft = (customParams.exercise || defs.exercise); totalRounds = customParams.rounds || defs.rounds; break;
+                    case 'prayer': timeLeft = defs.focus * 60; totalRounds = 1; break;
+                    case 'custom': timeLeft = (customParams.focus || defs.focus) * 60; totalRounds = customParams.rounds || defs.rounds; break;
+                    default: timeLeft = 1500; totalRounds = 1;
+                }
+                totalDuration = timeLeft;
             }
             isRunning = false;
             updateDisplay();
@@ -447,78 +611,62 @@
 
         function toggleTimer() {
             if (!currentMode) return;
-            if (isRunning) {
-                stopTimer();
-                return;
-            }
+            if (isRunning) { stopTimer(); return; }
             isRunning = true;
             document.getElementById('btnStart').textContent = '⏸';
             timerInterval = setInterval(tick, 1000);
         }
-
         function stopTimer() {
             clearInterval(timerInterval);
             timerInterval = null;
             isRunning = false;
-            if (document.getElementById('btnStart')) document.getElementById('btnStart').textContent = '▶';
+            const startBtn = document.getElementById('btnStart');
+            if (startBtn) startBtn.textContent = '▶';
         }
-
         function tick() {
             if (!isRunning) return;
             if (currentMode.id === 'stopwatch') {
                 timeLeft++;
                 updateDisplay();
-                updateProgress(0);
                 return;
             }
-            if (timeLeft <= 0) {
-                handleTimerEnd();
-                return;
-            }
+            if (timeLeft <= 0) { handleTimerEnd(); return; }
             timeLeft--;
             updateDisplay();
             updateProgress(timeLeft / totalDuration);
             document.title = `${formatTime(timeLeft)} - Fikr`;
         }
-
         function updateDisplay() {
-            const el = document.getElementById('timerTime');
-            if (el) el.textContent = formatTime(timeLeft);
-            const label = document.getElementById('timerLabel');
-            if (label) label.textContent = getTimerLabel();
+            const timeEl = document.getElementById('timerTime');
+            if (timeEl) timeEl.textContent = formatTime(timeLeft);
+            const labelEl = document.getElementById('timerLabel');
+            if (labelEl) labelEl.textContent = getTimerLabel();
             const roundInfo = document.getElementById('roundInfo');
             if (roundInfo) roundInfo.textContent = getRoundInfo();
         }
-
         function updateProgress(ratio) {
             const circle = document.getElementById('progressCircle');
             if (!circle) return;
-            const circumference = 565.5;
-            circle.style.strokeDashoffset = circumference * (1 - Math.min(1, Math.max(0, ratio)));
+            circle.style.strokeDashoffset = 565.5 * (1 - Math.min(1, Math.max(0, ratio)));
         }
-
         function handleTimerEnd() {
             if (currentMode.id === 'breathing') {
                 breathingPhaseIdx++;
                 if (breathingPhaseIdx >= breathingPhases.length) {
                     breathingPhaseIdx = 0;
                     breathingCycle++;
-                    if (breathingCycle >= breathingMaxCycles) {
-                        endSession(true);
-                        return;
-                    }
+                    if (breathingCycle >= breathingMaxCycles) { endSession(true); return; }
                 }
                 const nextPhase = breathingPhases[breathingPhaseIdx];
                 timeLeft = nextPhase.duration;
                 totalDuration = timeLeft;
                 updateDisplay();
                 updateProgress(1);
+                updateBreathingUI();
                 playSound('tick');
                 return;
             }
-
             if (!isBreak && totalRounds > 1 && currentRound < totalRounds && getBreakDuration() > 0) {
-                // start break
                 isBreak = true;
                 currentRound++;
                 timeLeft = getBreakDuration();
@@ -530,18 +678,14 @@
                 endSession(true);
             }
         }
-
         function getBreakDuration() {
             if (!currentMode) return 300;
             const d = currentMode.defaults;
-            if (currentMode.id === 'pomodoro') {
-                return (currentRound % 4 === 0 ? d.longBreak : d.break) * 60;
-            }
+            if (currentMode.id === 'pomodoro') return (currentRound % 4 === 0 ? d.longBreak : d.break) * 60;
             if (currentMode.id === 'interval') return d.break * 60;
             if (currentMode.id === 'workout') return d.rest;
             return d.break ? d.break * 60 : 0;
         }
-
         function skipBreak() {
             if (!isBreak || !currentMode) return;
             isBreak = false;
@@ -551,7 +695,6 @@
             updateDisplay();
             updateProgress(1);
         }
-
         function addFiveMinutes() {
             if (!currentMode || currentMode.id === 'stopwatch' || currentMode.id === 'breathing') return;
             timeLeft += 300;
@@ -559,28 +702,19 @@
             updateDisplay();
             updateProgress(timeLeft / totalDuration);
         }
-
         function resetTimer() {
             startMode(currentMode.id);
             updateDisplay();
             updateProgress(1);
-            if (isRunning) {
-                stopTimer();
-            }
+            if (isRunning) stopTimer();
         }
-
         function endSession(completed = true) {
             stopTimer();
+            cancelAnimationFrame(animFrame);
             if (completed && currentMode) {
                 const durMin = Math.round((totalDuration - timeLeft) / 60);
-                const session = {
-                    mode: currentMode.name,
-                    duration: durMin,
-                    date: new Date().toISOString(),
-                    score: sessionData.score || 100
-                };
+                const session = { mode: currentMode.name, duration: durMin, date: new Date().toISOString(), score: sessionData.score || 100 };
                 saveHistory(session);
-                // Show summary
                 document.getElementById('summaryDetails').innerHTML = `
                     <p><strong>${session.mode}</strong></p>
                     <p>Duration: ${durMin} minutes</p>
@@ -595,7 +729,6 @@
             }
             document.title = 'Fikr Timer';
         }
-
         document.getElementById('closeSummary').addEventListener('click', () => {
             document.getElementById('summaryModal').classList.remove('active');
         });
@@ -607,35 +740,41 @@
             const todaySessions = history.filter(s => new Date(s.date).toDateString() === todayStr);
             const todayMin = todaySessions.reduce((sum, s) => sum + (s.duration || 0), 0);
             const streak = calcStreak(history);
-
             main.innerHTML = `
                 <div class="view active">
                     <h2>Analytics</h2>
                     <div style="display:flex; gap:20px; margin:20px 0;">
                         <div style="flex:1; background:var(--surface); padding:16px; border-radius:16px;">
-                            <div style="font-size:1.8rem;">${todayMin}m</div>
-                            <small>Today Focus</small>
+                            <div style="font-size:1.8rem;">${todayMin}m</div><small>Today Focus</small>
                         </div>
                         <div style="flex:1; background:var(--surface); padding:16px; border-radius:16px;">
-                            <div style="font-size:1.8rem;">${todaySessions.length}</div>
-                            <small>Sessions</small>
+                            <div style="font-size:1.8rem;">${todaySessions.length}</div><small>Sessions</small>
                         </div>
                         <div style="flex:1; background:var(--surface); padding:16px; border-radius:16px;">
-                            <div style="font-size:1.8rem;">${streak}🔥</div>
-                            <small>Streak</small>
+                            <div style="font-size:1.8rem;">${streak}🔥</div><small>Streak</small>
                         </div>
                     </div>
+                    <h3>Last 30 Days Heatmap</h3>
+                    <div class="heatmap" id="heatmap"></div>
                     <h3>Recent Sessions</h3>
-                    <div id="historyList">
-                        ${history.slice(0,10).map(s => `
-                            <div class="history-item">
-                                <span>${s.mode}</span>
-                                <span>${s.duration}m</span>
-                                <small>${new Date(s.date).toLocaleDateString()}</small>
-                            </div>`).join('') || '<p>No sessions yet.</p>'}
-                    </div>
+                    <div id="historyList">${history.slice(0,10).map(s => `
+                        <div class="history-item">
+                            <span>${s.mode}</span><span>${s.duration}m</span>
+                            <small>${new Date(s.date).toLocaleDateString()}</small>
+                        </div>`).join('') || '<p>No sessions yet.</p>'}</div>
                     <button class="btn" id="clearHistory" style="margin-top:10px;">Clear History</button>
                 </div>`;
+            // Heatmap
+            const heatmapDiv = document.getElementById('heatmap');
+            for (let i = 29; i >= 0; i--) {
+                const d = new Date(Date.now() - i*86400000).toDateString();
+                const min = history.filter(s => new Date(s.date).toDateString() === d).reduce((sum, s) => sum + (s.duration||0), 0);
+                const cell = document.createElement('div');
+                cell.className = 'heat-cell';
+                cell.style.background = min > 0 ? `rgba(124,92,231,${Math.min(1, min/60)})` : 'var(--border)';
+                cell.title = `${d}: ${min}m`;
+                heatmapDiv.appendChild(cell);
+            }
             document.getElementById('clearHistory').addEventListener('click', () => {
                 if (confirm('Clear all history?')) {
                     localStorage.removeItem('fikr_history');
@@ -643,7 +782,6 @@
                 }
             });
         }
-
         function calcStreak(history) {
             const dates = [...new Set(history.map(s => new Date(s.date).toDateString()))].sort().reverse();
             let streak = 0;
@@ -651,8 +789,7 @@
             if (dates.length === 0) return 0;
             if (dates[0] !== today && dates[0] !== new Date(Date.now() - 86400000).toDateString()) return 0;
             for (let i = 0; i < dates.length; i++) {
-                const d = new Date(dates[i]);
-                const expected = new Date(Date.now() - i * 86400000);
+                const d = new Date(dates[i]), expected = new Date(Date.now() - i * 86400000);
                 if (d.toDateString() === expected.toDateString()) streak++;
                 else break;
             }
@@ -667,13 +804,12 @@
             if (e.code === 'Equal' && e.shiftKey) addFiveMinutes();
         });
 
-        // ===================== THEME TOGGLE =====================
         document.getElementById('themeBtn').addEventListener('click', () => {
             const html = document.documentElement;
             html.setAttribute('data-theme', html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
         });
 
-        // ===================== INIT =====================
+        // Start
         renderView();
     </script>
 </body>
